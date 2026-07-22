@@ -9,6 +9,9 @@
     cve_advisory_ids: "{{ (_raw_cve_input.split(',') | map('trim') | list) if _raw_cve_input is string else _raw_cve_input }}"
 
   tasks:
+    - name: Ensure RHSM registration
+      ansible.builtin.include_tasks: tasks/rhsm_ensure_registered.yml
+
     - name: Find DNF transaction IDs for the advisories
       ansible.builtin.shell: >
         set -o pipefail &&
@@ -17,13 +20,15 @@
       register: dnf_history_results
       changed_when: false
       failed_when: false
+      when: rhsm_registered
 
     - name: Undo the DNF transactions
       ansible.builtin.command:
         cmd: "dnf history undo {{ item.stdout }} -y"
-      loop: "{{ dnf_history_results.results }}"
+      loop: "{{ dnf_history_results.results | default([]) }}"
       register: undo_results
       when:
+        - rhsm_registered
         - item.stdout is defined
         - item.stdout != ""
         - item.stdout is regex('^[0-9]+$')
@@ -34,7 +39,9 @@
       register: reboot_check
       failed_when: false
       changed_when: false
-      when: undo_results.results | selectattr('skipped', 'undefined') | list | length > 0
+      when:
+        - rhsm_registered
+        - undo_results.results | default([]) | selectattr('skipped', 'undefined') | list | length > 0
 
     - name: Set reboot_required fact
       ansible.builtin.set_fact:
@@ -45,4 +52,5 @@
       ansible.builtin.debug:
         msg:
           - "Processed Advisories: {{ cve_advisory_ids | join(', ') }}"
+          - "Status: {{ 'SKIPPED (host not registered with RHSM)' if rhsm_unregistered | default(false) else 'Processed' }}"
           - "Reboot Required: {{ 'YES' if reboot_required else 'NO' }}"

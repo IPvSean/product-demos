@@ -9,34 +9,30 @@
     cve_advisory_ids: "{{ (_raw_cve_input.split(',') | map('trim') | list) if _raw_cve_input is string else _raw_cve_input }}"
 
   tasks:
+    - name: Ensure RHSM registration
+      ansible.builtin.include_tasks: tasks/rhsm_ensure_registered.yml
+
     - name: Query DNF for targeted advisories
       ansible.builtin.command: "dnf updateinfo list --advisory {{ cve_advisory_ids | join(' ') }}"
       register: rhel_check
       changed_when: false
-      failed_when: false
+      when: rhsm_registered
 
     - name: Identify missing RHEL advisories
       ansible.builtin.set_fact:
         missing_patches: "{{ cve_advisory_ids | select('in', rhel_check.stdout) | list }}"
-      when: rhel_check.rc == 0
+      when: rhsm_registered
 
     - name: Set RHEL status fact
       ansible.builtin.set_fact:
         patch_needed: "{{ missing_patches | length > 0 }}"
-      when: rhel_check.rc == 0
-
-    - name: Flag unregistered host
-      ansible.builtin.set_fact:
-        missing_patches: []
-        patch_needed: false
-        rhel_unregistered: true
-      when: rhel_check.rc != 0
+      when: rhsm_registered
 
     - name: Summary of RHEL pre-check
       ansible.builtin.debug:
         msg: >
           System: {{ inventory_hostname }} |
-          {% if rhel_unregistered | default(false) %}
+          {% if rhsm_unregistered | default(false) %}
           Status: SKIPPED (host not registered with RHSM) |
           {% else %}
           Missing Items: {{ missing_patches | join(', ') if missing_patches else 'None' }} |

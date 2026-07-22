@@ -2,6 +2,40 @@
 _deployment_id: "{{ lookup('file', playbook_dir + '/.deployment_id') }}"
 
 user_message:
+  - >-
+    To enable automatic RHSM registration on unregistered RHEL hosts,
+    update the 'RHSM Registration' credential in AAP with your org ID
+    and activation key. https://access.redhat.com/management/activation_keys
+
+controller_credential_types:
+  - name: RHSM Activation Key
+    kind: cloud
+    inputs:
+      fields:
+        - id: rhsm_org_id
+          type: string
+          label: Organization ID
+        - id: rhsm_activation_key
+          type: string
+          label: Activation Key
+          secret: true
+      required:
+        - rhsm_org_id
+        - rhsm_activation_key
+    injectors:
+      extra_vars:
+        rhsm_org_id: !unsafe '{{ rhsm_org_id }}'
+        rhsm_activation_key: !unsafe '{{ rhsm_activation_key }}'
+
+controller_credentials:
+  - name: RHSM Registration
+    credential_type: RHSM Activation Key
+    organization: Ansible Product Demos (APD)
+    update_secrets: false
+    state: exists
+    inputs:
+      rhsm_org_id: REPLACEME
+      rhsm_activation_key: REPLACEME
 
 controller_execution_environments:
   - name: TMM AWS EE
@@ -247,6 +281,7 @@ controller_templates:
     organization: Ansible Product Demos (APD)
     credentials:
       - APD Machine Credential
+      - RHSM Registration
     project: Ansible Product Demos
     playbook: cloud/patch_pre_check_rhel.yml
     inventory: Ansible Product Demos Inventory
@@ -260,6 +295,7 @@ controller_templates:
     organization: Ansible Product Demos (APD)
     credentials:
       - APD Machine Credential
+      - RHSM Registration
     project: Ansible Product Demos
     playbook: cloud/patch_rhel.yml
     inventory: Ansible Product Demos Inventory
@@ -273,6 +309,7 @@ controller_templates:
     organization: Ansible Product Demos (APD)
     credentials:
       - APD Machine Credential
+      - RHSM Registration
     project: Ansible Product Demos
     playbook: cloud/patch_post_check_rhel.yml
     inventory: Ansible Product Demos Inventory
@@ -286,6 +323,7 @@ controller_templates:
     organization: Ansible Product Demos (APD)
     credentials:
       - APD Machine Credential
+      - RHSM Registration
     project: Ansible Product Demos
     playbook: cloud/patch_rollback_rhel.yml
     inventory: Ansible Product Demos Inventory
@@ -351,6 +389,7 @@ controller_templates:
     organization: Ansible Product Demos (APD)
     credentials:
       - APD Machine Credential
+      - RHSM Registration
     project: Ansible Product Demos
     playbook: cloud/patch_compliance_report.yml
     inventory: Ansible Product Demos Inventory

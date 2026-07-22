@@ -15,23 +15,27 @@
       when: ansible_os_family == "RedHat"
       become: true
       block:
+        - name: Ensure RHSM registration
+          ansible.builtin.include_tasks: tasks/rhsm_ensure_registered.yml
+
         - name: Check RHEL for targeted advisories
           ansible.builtin.command: "dnf updateinfo list --advisory {{ cve_advisory_ids | join(' ') }}"
           register: rhel_target_check
           changed_when: false
-          failed_when: false
+          when: rhsm_registered
 
         - name: Get all missing security advisories
           ansible.builtin.command: "dnf updateinfo list security --quiet"
           register: rhel_all_vulns
           changed_when: false
-          failed_when: false
+          when: rhsm_registered
 
         - name: Check if RHEL needs a reboot
           ansible.builtin.command: "needs-restarting -r"
           register: rhel_reboot_check
           failed_when: false
           changed_when: false
+          when: rhsm_registered
 
         - name: Set RHEL compliance facts (registered host)
           ansible.builtin.set_fact:
@@ -42,7 +46,7 @@
                  | select('string') | list | unique }}
             reboot_needed: "{{ 'YES' if rhel_reboot_check.rc != 0 else 'NO' }}"
             cacheable: true
-          when: rhel_target_check.rc == 0
+          when: rhsm_registered
 
         - name: Set RHEL compliance facts (unregistered host)
           ansible.builtin.set_fact:
@@ -50,11 +54,11 @@
             full_vulns: []
             reboot_needed: "N/A"
             cacheable: true
-          when: rhel_target_check.rc != 0
+          when: rhsm_unregistered | default(false)
 
         - name: Set RHEL compliance status
           ansible.builtin.set_fact:
-            compliance_status: "{{ 'UNREGISTERED' if rhel_target_check.rc != 0 else ('VULNERABLE' if (missing_targets | length > 0) else 'COMPLIANT') }}"
+            compliance_status: "{{ 'UNREGISTERED' if rhsm_unregistered | default(false) else ('VULNERABLE' if (missing_targets | length > 0) else 'COMPLIANT') }}"
             cacheable: true
 
     - name: Windows audit block
