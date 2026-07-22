@@ -352,6 +352,7 @@
   blurb: "Apply updates or audit for missing patches and produce an HTML report of systems with missing updates."
   stats:
     playbooks: 1
+  url: /demos/linux-patching/
   github_path: linux/patching.yml
 
 - slug: linux-start-service
@@ -578,6 +579,7 @@
   stats:
     workflows: 1
     playbooks: 3
+  url: /demos/linux-compliance-workflow/
   github_path: linux/setup.yml
 
 # ─── Windows ────────────────────────────────────────────────────────
@@ -611,6 +613,7 @@
   blurb: "Apply Windows updates by category (Security, Critical, Service Packs, etc.) with optional reboot control."
   stats:
     playbooks: 1
+  url: /demos/windows-patching/
   github_path: windows/patching.yml
 
 - slug: windows-rollback
@@ -818,6 +821,7 @@
   stats:
     workflows: 1
     playbooks: 8
+  url: /demos/windows-setup-ad-domain/
   github_path: windows/setup.yml
 
 # ─── Network ────────────────────────────────────────────────────────
@@ -900,6 +904,7 @@
   stats:
     workflows: 1
     playbooks: 5
+  url: /demos/network-panos-workflow/
   github_path: network/panos/deploy.yml
 
 # ─── OpenShift ──────────────────────────────────────────────────────
