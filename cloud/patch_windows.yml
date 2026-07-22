@@ -4,17 +4,8 @@
   gather_facts: false
 
   vars:
-    default_kb_list:
-      - KB5044284
-      - KB5044030
-    target_kb_ids: >-
-      {% if input_kb_ids is defined and input_kb_ids is string and input_kb_ids | length > 0 %}
-        {{ input_kb_ids.split(',') | map('trim') | list }}
-      {% elif input_kb_ids is defined and input_kb_ids is iterable and input_kb_ids is not string %}
-        {{ input_kb_ids }}
-      {% else %}
-        {{ default_kb_list }}
-      {% endif %}
+    _raw_kb_input: "{{ input_kb_ids | default('KB5044284, KB5044030') }}"
+    target_kb_ids: "{{ (_raw_kb_input.split(',') | map('trim') | list) if _raw_kb_input is string else _raw_kb_input }}"
 
   tasks:
     - name: Search and install specific updates

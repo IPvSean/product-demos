@@ -6,12 +6,7 @@
 
   vars:
     _raw_cve_input: "{{ input_cve_ids | default('RHSA-2024:3138, CVE-2024-33599') }}"
-    cve_advisory_ids: >-
-      {% if _raw_cve_input is string %}
-        {{ (_raw_cve_input | replace(',', ' ')).split() | map('trim') | list }}
-      {% else %}
-        {{ _raw_cve_input }}
-      {% endif %}
+    cve_advisory_ids: "{{ (_raw_cve_input.split(',') | map('trim') | list) if _raw_cve_input is string else _raw_cve_input }}"
 
   tasks:
     - name: Query DNF for targeted advisories
