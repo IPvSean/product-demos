@@ -1,6 +1,6 @@
 ---
-- name: Patch compliance report
-  hosts: "{{ _hosts | default('os_linux') }}:{{ _hosts_windows | default('os_windows') }}:{{ _report_server | default('reports') }}"
+- name: Gather patch compliance data
+  hosts: "{{ _hosts | default('os_linux') }}:{{ _hosts_windows | default('os_windows') }}"
   gather_facts: true
 
   vars:
@@ -8,7 +8,6 @@
     cve_advisory_ids: "{{ (_raw_cve_input.split(',') | map('trim') | list) if _raw_cve_input is string else _raw_cve_input }}"
     _raw_kb_input: "{{ input_kb_ids | default('KB5044284, KB5044030') }}"
     target_kb_ids: "{{ (_raw_kb_input.split(',') | map('trim') | list) if _raw_kb_input is string else _raw_kb_input }}"
-    report_server: "{{ _report_server | default('reports') }}"
 
   tasks:
     - name: RHEL audit block
@@ -103,110 +102,126 @@
           - "Missing Targets: {{ missing_targets | default([]) | join(', ') or 'None' }}"
           - "Reboot Needed: {{ reboot_needed | default('UNKNOWN') }}"
 
-    - name: Deploy HTML compliance report
-      delegate_to: "{{ report_server }}"
-      become: true
-      run_once: true  # noqa: run-once[task]
-      block:
-        - name: Install httpd
-          ansible.builtin.dnf:
-            name: httpd
-            state: present
+- name: Generate patch compliance report
+  hosts: "{{ _report_server | default('reports') }}"
+  become: true
+  gather_facts: true
 
-        - name: Start and enable httpd
-          ansible.builtin.service:
-            name: httpd
-            state: started
-            enabled: true
+  vars:
+    _raw_cve_input: "{{ input_cve_ids | default('RHSA-2024:3138, CVE-2024-33599') }}"
+    cve_advisory_ids: "{{ (_raw_cve_input.split(',') | map('trim') | list) if _raw_cve_input is string else _raw_cve_input }}"
+    _raw_kb_input: "{{ input_kb_ids | default('KB5044284, KB5044030') }}"
+    target_kb_ids: "{{ (_raw_kb_input.split(',') | map('trim') | list) if _raw_kb_input is string else _raw_kb_input }}"
+    audit_hosts: "{{ groups[_hosts | default('os_linux')] | default([]) + groups[_hosts_windows | default('os_windows')] | default([]) }}"
 
-        - name: Open firewall for HTTP
-          ansible.posix.firewalld:
-            service: "{{ item }}"
-            permanent: true
-            state: enabled
-            immediate: true
-          loop:
-            - http
-            - https
+  tasks:
+    - name: Install httpd
+      ansible.builtin.dnf:
+        name: httpd
+        state: present
 
-        - name: Generate HTML compliance report
-          ansible.builtin.copy:
-            dest: /var/www/html/patch_report.html
-            mode: "0644"
-            content: |
-              <!DOCTYPE html>
-              <html>
-              <head>
-                  <title>Patch Compliance Report</title>
-                  <style>
-                      body { font-family: 'Red Hat Display', 'Segoe UI', sans-serif; margin: 20px; background-color: #f0f0f0; }
-                      .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 98%; margin: auto; }
-                      table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
-                      th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; vertical-align: top; word-wrap: break-word; }
-                      th { background-color: #1a1a2e; color: white; }
-                      .VULNERABLE { color: #c9190b; font-weight: bold; }
-                      .COMPLIANT { color: #3e8635; font-weight: bold; }
-                      .UNREGISTERED { color: #6a6e73; font-weight: bold; font-style: italic; }
-                      .reboot-YES { color: #f0ab00; font-weight: bold; }
-                      .reboot-NO { color: #adb5bd; }
-                      .vuln-tag { display: inline-block; background: #e9ecef; color: #495057; padding: 2px 8px; border-radius: 4px; margin: 2px; font-size: 11px; font-family: 'Red Hat Mono', 'Courier New', monospace; border: 1px solid #dee2e6; }
-                      .review-box { background-color: #e7f1fa; border: 1px solid #bee1f4; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
-                  </style>
-              </head>
-              <body>
-                  <div class="container">
-                      <h1>Patch Compliance Dashboard</h1>
-                      <div class="review-box">
-                          <h3 style="margin-top: 0; color: #06c;">Audit Targets</h3>
-                          <div style="display: flex; gap: 40px;">
-                              <div>
-                                  <strong>RHEL Advisories:</strong><br>
-                                  {% for cve in cve_advisory_ids %}
-                                      <span class="vuln-tag" style="background: #cce3f5;">{{ cve }}</span>
-                                  {% endfor %}
-                              </div>
-                              <div>
-                                  <strong>Windows KBs:</strong><br>
-                                  {% for kb in target_kb_ids %}
-                                      <span class="vuln-tag" style="background: #cce3f5;">{{ kb }}</span>
-                                  {% endfor %}
-                              </div>
+    - name: Start and enable httpd
+      ansible.builtin.service:
+        name: httpd
+        state: started
+        enabled: true
+
+    - name: Open firewall for HTTP
+      ansible.posix.firewalld:
+        service: "{{ item }}"
+        permanent: true
+        state: enabled
+        immediate: true
+      loop:
+        - http
+        - https
+
+    - name: Generate HTML compliance report
+      ansible.builtin.copy:
+        dest: /var/www/html/patch_report.html
+        mode: "0644"
+        content: |
+          <!DOCTYPE html>
+          <html>
+          <head>
+              <title>Patch Compliance Report</title>
+              <style>
+                  body { font-family: 'Red Hat Display', 'Segoe UI', sans-serif; margin: 20px; background-color: #f0f0f0; }
+                  .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 98%; margin: auto; }
+                  table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
+                  th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; vertical-align: top; word-wrap: break-word; }
+                  th { background-color: #1a1a2e; color: white; }
+                  .VULNERABLE { color: #c9190b; font-weight: bold; }
+                  .COMPLIANT { color: #3e8635; font-weight: bold; }
+                  .UNREGISTERED { color: #6a6e73; font-weight: bold; font-style: italic; }
+                  .reboot-YES { color: #f0ab00; font-weight: bold; }
+                  .reboot-NO { color: #adb5bd; }
+                  .vuln-tag { display: inline-block; background: #e9ecef; color: #495057; padding: 2px 8px; border-radius: 4px; margin: 2px; font-size: 11px; font-family: 'Red Hat Mono', 'Courier New', monospace; border: 1px solid #dee2e6; }
+                  .review-box { background-color: #e7f1fa; border: 1px solid #bee1f4; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+              </style>
+          </head>
+          <body>
+              <div class="container">
+                  <h1>Patch Compliance Dashboard</h1>
+                  <div class="review-box">
+                      <h3 style="margin-top: 0; color: #06c;">Audit Targets</h3>
+                      <div style="display: flex; gap: 40px;">
+                          <div>
+                              <strong>RHEL Advisories:</strong><br>
+                              {% for cve in cve_advisory_ids %}
+                                  <span class="vuln-tag" style="background: #cce3f5;">{{ cve }}</span>
+                              {% endfor %}
+                          </div>
+                          <div>
+                              <strong>Windows KBs:</strong><br>
+                              {% for kb in target_kb_ids %}
+                                  <span class="vuln-tag" style="background: #cce3f5;">{{ kb }}</span>
+                              {% endfor %}
                           </div>
                       </div>
-                      <p><strong>Report Generated:</strong> {{ ansible_date_time.iso8601 }}</p>
-                      <table>
-                          <tr>
-                              <th style="width: 12%;">Host</th>
-                              <th style="width: 10%;">Status</th>
-                              <th style="width: 15%;">Missing Targeted</th>
-                              <th style="width: 10%;">Reboot</th>
-                              <th style="width: 53%;">All Vulnerabilities</th>
-                          </tr>
-                          {% for host in ansible_play_hosts_all %}
-                            {% if hostvars[host].compliance_status is defined %}
-                            <tr>
-                                <td>{{ host }}</td>
-                                <td><span class="{{ hostvars[host].compliance_status }}">{{ hostvars[host].compliance_status }}</span></td>
-                                <td>{{ hostvars[host].missing_targets | join(', ') if hostvars[host].missing_targets else 'None' }}</td>
-                                <td><span class="reboot-{{ hostvars[host].reboot_needed }}">{{ hostvars[host].reboot_needed }}</span></td>
-                                <td>
-                                    {% if hostvars[host].full_vulns %}
-                                        {% for vuln in hostvars[host].full_vulns %}
-                                            <span class="vuln-tag">{{ vuln }}</span>
-                                        {% endfor %}
-                                    {% else %}
-                                        <span style="color: #6c757d; font-style: italic;">No additional vulnerabilities</span>
-                                    {% endif %}
-                                </td>
-                            </tr>
-                            {% endif %}
-                          {% endfor %}
-                      </table>
                   </div>
-              </body>
-              </html>
-          changed_when: true
+                  <p><strong>Report Generated:</strong> {{ ansible_date_time.iso8601 }}</p>
+                  <table>
+                      <tr>
+                          <th style="width: 12%;">Host</th>
+                          <th style="width: 10%;">Status</th>
+                          <th style="width: 15%;">Missing Targeted</th>
+                          <th style="width: 10%;">Reboot</th>
+                          <th style="width: 53%;">All Vulnerabilities</th>
+                      </tr>
+                      {% for host in audit_hosts %}
+                        {% if hostvars[host] is defined and hostvars[host].compliance_status is defined %}
+                        <tr>
+                            <td>{{ host }}</td>
+                            <td><span class="{{ hostvars[host].compliance_status }}">{{ hostvars[host].compliance_status }}</span></td>
+                            <td>{{ hostvars[host].missing_targets | join(', ') if hostvars[host].missing_targets else 'None' }}</td>
+                            <td><span class="reboot-{{ hostvars[host].reboot_needed }}">{{ hostvars[host].reboot_needed }}</span></td>
+                            <td>
+                                {% if hostvars[host].full_vulns %}
+                                    {% for vuln in hostvars[host].full_vulns %}
+                                        <span class="vuln-tag">{{ vuln }}</span>
+                                    {% endfor %}
+                                {% else %}
+                                    <span style="color: #6c757d; font-style: italic;">No additional vulnerabilities</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endif %}
+                      {% endfor %}
+                  </table>
+              </div>
+          </body>
+          </html>
+      changed_when: true
 
-        - name: Display report URL
-          ansible.builtin.debug:
-            msg: "Compliance report available at http://{{ report_server }}/patch_report.html"
+    - name: Retrieve public IP address
+      ansible.builtin.uri:
+        url: https://ifconfig.me
+        return_content: true
+      register: public_ip_report
+      ignore_errors: true
+      changed_when: false
+
+    - name: Display report URL
+      ansible.builtin.debug:
+        msg: "Compliance report available at http://{{ public_ip_report.content | default(ansible_host) }}/patch_report.html"
