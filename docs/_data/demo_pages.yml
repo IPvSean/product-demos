@@ -12,10 +12,10 @@ patch-cloud-stack:
     - The HTML compliance report is a tangible artifact you can show stakeholders
     - Covers targeted advisory patching (RHSA/CVE for RHEL, KB for Windows), not just "update everything"
   prerequisites:
-    - Run <strong>Deploy Cloud Stack in AWS</strong> first to create the target VMs
-    - AWS credential configured with Access and Secret key
-    - SSH private key on <strong>APD Machine Credential</strong>
-    - (Optional) Fill in the <strong>RHSM Registration</strong> credential with org ID and activation key to auto-register unregistered RHEL hosts
+    - "<strong>If using RHDP (demo.redhat.com):</strong> Run <strong>APD | Multi-demo setup</strong> — this configures all demo categories at once, including the cloud patching templates and credentials. AWS and APD Machine credentials are pre-configured for you."
+    - "<strong>If using your own installation:</strong> Run <strong>APD | Single demo setup</strong> and choose <code>cloud</code>. You will also need to configure the <strong>AWS</strong> credential (Access Key + Secret Key), add an SSH private key and Windows username/password to <strong>APD Machine Credential</strong>, and ensure you have the target VMs, VPC, and keypair provisioned."
+    - "Run <strong>Deploy Cloud Stack in AWS</strong> to create the five target VMs (aws_rhel8, aws_rhel9, aws-dc, aws_win1, reports)"
+    - "Fill in the <strong>RHSM Registration</strong> credential with your Red Hat org ID and activation key (required for everyone — see credential setup below)"
   survey_prompts:
     - question: AWS Region
       variable: aws_region
@@ -36,7 +36,8 @@ patch-cloud-stack:
       - "<strong>APD Machine Credential</strong> (pre-configured on demo.redhat.com)<strong>:</strong> Navigate to Resources → Credentials → <code>APD Machine Credential</code>. Add an SSH private key (for Linux connections) and set the username/password (for Windows WinRM connections). <em>If you ordered your environment from <a href='https://red.ht/apd-sandbox'>demo.redhat.com</a>, this credential is already configured for you. You only need to set this up if you are running APD on your own installation.</em>"
       - "<strong>RHSM Registration</strong> (action required for everyone)<strong>:</strong> Navigate to Resources → Credentials → <code>RHSM Registration</code>. This credential was created by the setup job with placeholder values. Fill in your Red Hat org ID and activation key so that unregistered RHEL hosts can be auto-registered before patching. If left as <code>REPLACEME</code>, RHEL hosts that aren't already registered with RHSM will be skipped gracefully instead of failing. To find your org ID, run <code>subscription-manager identity</code> on any registered system, or visit <a href='https://access.redhat.com/management'>access.redhat.com/management</a>. Create an activation key at <a href='https://access.redhat.com/management/activation_keys'>Activation Keys</a>."
   walkthrough:
-    - "<strong>Configure credentials:</strong> If using demo.redhat.com, AWS and APD Machine credentials are pre-configured — you just need to fill in the RHSM Registration credential with your org ID and activation key. On a self-managed install, verify all three credentials. See the credential setup section above."
+    - "<strong>Run setup:</strong> On RHDP (Red Hat Demo Platform), run <strong>APD | Multi-demo setup</strong> to configure everything. On your own install, run <strong>APD | Single demo setup</strong> → choose <code>cloud</code>. Then fill in the <strong>RHSM Registration</strong> credential with your org ID and activation key (see credential setup above)."
+    - "<strong>Deploy the stack:</strong> Launch <strong>Deploy Cloud Stack in AWS</strong> to create the five target VMs. Wait for it to complete and verify the hosts appear in inventory."
     - "<strong>Set the stage:</strong> Show the audience the five VMs in AAP inventory (aws_rhel8, aws_rhel9, aws-dc, aws_win1, reports). Point out it's a mixed Linux/Windows fleet."
     - "<strong>Launch the workflow:</strong> Navigate to Templates → Patch Cloud Stack in AWS. Fill in the survey with a real RHSA/CVE and KB (defaults work). Launch."
     - "<strong>Snapshot step:</strong> While it runs, explain that the first node takes EBS snapshots of all instances — this is the safety net. 'If anything goes wrong during patching, we restore to this point.'"
@@ -118,8 +119,8 @@ deploy-cloud-stack:
     - Mixed OS fleet (RHEL 8, RHEL 9, Windows Server) reflects real customer environments
     - Dynamic inventory automatically imports all provisioned VMs into AAP
   prerequisites:
-    - AWS credential configured with Access and Secret key
-    - SSH private key on <strong>APD Machine Credential</strong>
+    - "<strong>If using RHDP (demo.redhat.com):</strong> Run <strong>APD | Multi-demo setup</strong> to configure all templates and credentials. AWS and APD Machine credentials are pre-configured for you."
+    - "<strong>If using your own installation:</strong> Run <strong>APD | Single demo setup</strong> and choose <code>cloud</code>. Configure the <strong>AWS</strong> credential with your Access Key and Secret Key, and add an SSH private key to <strong>APD Machine Credential</strong>."
   survey_prompts:
     - question: AWS Region
       variable: aws_region
