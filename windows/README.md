@@ -35,6 +35,7 @@ We are currently investigating an intermittent connectivity issue related to the
 
 ### Workflows
 - [**Setup Active Directory Domain**](setup_domain_workflow.md) - A workflow to create a domain controller with two domain-joined Windows hosts
+- [**Patch Cloud Stack in AWS**](../cloud/README.md#patch-cloud-stack-in-aws) - (Cloud demo) Snapshot, patch, post-check, and compliance report for both Windows and RHEL EC2 instances
 
 ## Suggested Usage
 

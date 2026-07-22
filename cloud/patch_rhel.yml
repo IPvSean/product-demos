@@ -1,0 +1,39 @@
+---
+- name: Patch specific RHEL CVEs
+  hosts: "{{ _hosts | default('os_linux') }}"
+  become: true
+  gather_facts: false
+
+  vars:
+    raw_cve_input: "{{ input_cve_ids | default('RHSA-2024:3138, CVE-2024-33599') }}"
+    cve_advisory_ids: >-
+      {% if raw_cve_input is string %}
+        {{ (raw_cve_input | replace(',', ' ')).split() | map('trim') | list }}
+      {% else %}
+        {{ raw_cve_input }}
+      {% endif %}
+
+  tasks:
+    - name: Apply specific advisories via dnf
+      ansible.builtin.command:
+        cmd: "dnf update --advisory={{ cve_advisory_ids | join(' --advisory=') }} -y"
+      register: dnf_result
+      changed_when: "'Nothing to do' not in dnf_result.stdout"
+
+    - name: Check if reboot is required
+      ansible.builtin.command: needs-restarting -r
+      register: reboot_check
+      failed_when: false
+      changed_when: false
+
+    - name: Set reboot_required fact
+      ansible.builtin.set_fact:
+        reboot_required: "{{ reboot_check.rc != 0 }}"
+        cacheable: true
+
+    - name: Report status
+      ansible.builtin.debug:
+        msg:
+          - "Target Advisories: {{ cve_advisory_ids | join(', ') }}"
+          - "Patching status: {{ 'Changes applied' if dnf_result.changed else 'No updates needed' }}"
+          - "Reboot required: {{ reboot_required }}"
