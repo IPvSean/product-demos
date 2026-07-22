@@ -25,6 +25,28 @@
     playbooks: 9
   url: /demos/patch-cloud-stack/
   github_path: cloud/setup.yml
+  workflow_mermaid: |
+    graph LR
+      A["📸 Take Snapshot"] --> B["🔍 Pre-check RHEL"]
+      A --> C["🔍 Pre-check Windows"]
+      B --> D["🩹 Patch RHEL"]
+      C --> E["🩹 Patch Windows"]
+      D -->|success| F["✅ Post-check RHEL"]
+      D -->|failure| G["⏪ Restore RHEL"]
+      E -->|success| H["✅ Post-check Windows"]
+      E -->|failure| I["⏪ Restore Windows"]
+      F -->|always| J["📊 Compliance Report"]
+      H -->|always| J
+      style A fill:#1e3a5f,stroke:#4a90d9,color:#fff
+      style B fill:#1a3d2e,stroke:#4ade80,color:#fff
+      style C fill:#1a3d2e,stroke:#4ade80,color:#fff
+      style D fill:#3d1a1a,stroke:#f87171,color:#fff
+      style E fill:#3d1a1a,stroke:#f87171,color:#fff
+      style F fill:#1a3d2e,stroke:#4ade80,color:#fff
+      style G fill:#4a1a1a,stroke:#ef4444,color:#fff
+      style H fill:#1a3d2e,stroke:#4ade80,color:#fff
+      style I fill:#4a1a1a,stroke:#ef4444,color:#fff
+      style J fill:#2d1f4e,stroke:#a78bfa,color:#fff
 
 - slug: deploy-cloud-stack
   title: "Deploy Cloud Stack in AWS"
@@ -46,6 +68,45 @@
     playbooks: 7
   url: /demos/deploy-cloud-stack/
   github_path: cloud/setup.yml
+  workflow_mermaid: |
+    graph LR
+      A["🔑 Create Keypair"] --> C["📊 EC2 Stats"]
+      B["🌐 Create VPC"] --> C
+      C -->|always| D["🪟 aws-dc<br/>windows_full"]
+      C -->|always| E["🪟 aws_win1<br/>windows_core"]
+      C -->|always| F["🐧 aws_rhel8<br/>rhel8"]
+      C -->|always| G["🐧 aws_rhel9<br/>rhel9"]
+      C -->|always| H["📋 reports<br/>rhel9"]
+      D --> I["🔄 Sync Inventory"]
+      E --> I
+      F --> I
+      G --> I
+      H --> I
+      I --> J["📄 VPC Report"]
+      style A fill:#1e3a5f,stroke:#4a90d9,color:#fff
+      style B fill:#1e3a5f,stroke:#4a90d9,color:#fff
+      style C fill:#2d2d2d,stroke:#888,color:#fff
+      style D fill:#1a2744,stroke:#2b88d8,color:#fff
+      style E fill:#1a2744,stroke:#2b88d8,color:#fff
+      style F fill:#3d1a1a,stroke:#cc0000,color:#fff
+      style G fill:#3d1a1a,stroke:#cc0000,color:#fff
+      style H fill:#3d1a1a,stroke:#cc0000,color:#fff
+      style I fill:#1a3d2e,stroke:#4ade80,color:#fff
+      style J fill:#2d1f4e,stroke:#a78bfa,color:#fff
+
+- slug: coming-soon
+  title: "More demos coming soon"
+  subtitle: "Your demo here?"
+  category: cloud
+  status: active
+  featured: true
+  tags: []
+  thumbnail:
+    gradient: "linear-gradient(135deg, #333 0%, #1a1a1a 100%)"
+    icon: "🔮"
+  blurb: "Have a demo idea? Fork the repo, add your playbook, and submit a PR. See the contributing guide for details."
+  stats: {}
+  github_path: CONTRIBUTING.md
 
 # ─── Cloud ──────────────────────────────────────────────────────────
 
@@ -65,6 +126,7 @@
   stats:
     workflows: 1
     playbooks: 4
+  url: /demos/cloud-destroy-stack/
   github_path: cloud/setup.yml
 
 - slug: cloud-create-vpc

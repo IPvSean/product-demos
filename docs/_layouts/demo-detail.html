@@ -57,6 +57,17 @@ mermaid: true
 </section>
 {% endif %}
 
+{% if detail.credential_setup %}
+<section class="detail-section" id="credential-setup">
+  <h2>{{ detail.credential_setup.title }}</h2>
+  <ol class="detail-list">
+    {% for step in detail.credential_setup.steps %}
+      <li>{{ step }}</li>
+    {% endfor %}
+  </ol>
+</section>
+{% endif %}
+
 {% if detail.survey_prompts %}
 <section class="detail-section" id="survey-prompts">
   <h2>Survey prompts</h2>

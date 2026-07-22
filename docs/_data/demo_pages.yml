@@ -29,7 +29,14 @@ patch-cloud-stack:
       variable: input_kb_ids
       type: text
       required: "Yes"
+  credential_setup:
+    title: Configure credentials before first run
+    steps:
+      - "<strong>AWS credential:</strong> Navigate to Resources → Credentials → <code>AWS</code>. Add your AWS Access Key and Secret Key. This is needed for EBS snapshot and restore operations."
+      - "<strong>APD Machine Credential:</strong> Navigate to Resources → Credentials → <code>APD Machine Credential</code>. Add an SSH private key (for Linux connections) and set the username/password (for Windows WinRM connections)."
+      - "<strong>RHSM Registration (optional):</strong> Navigate to Resources → Credentials → <code>RHSM Registration</code>. This credential was created by the setup job with placeholder values. Fill in your Red Hat org ID and activation key. If left as <code>REPLACEME</code>, RHEL hosts that aren't already registered with RHSM will be skipped gracefully instead of failing. To find your org ID, run <code>subscription-manager identity</code> on any registered system, or visit <a href='https://access.redhat.com/management'>access.redhat.com/management</a>. Create an activation key at <a href='https://access.redhat.com/management/activation_keys'>Activation Keys</a>."
   walkthrough:
+    - "<strong>Configure credentials:</strong> Before the first run, verify that the AWS, APD Machine, and (optionally) RHSM Registration credentials are filled in. See the credential setup section above for details."
     - "<strong>Set the stage:</strong> Show the audience the five VMs in AAP inventory (aws_rhel8, aws_rhel9, aws-dc, aws_win1, reports). Point out it's a mixed Linux/Windows fleet."
     - "<strong>Launch the workflow:</strong> Navigate to Templates → Patch Cloud Stack in AWS. Fill in the survey with a real RHSA/CVE and KB (defaults work). Launch."
     - "<strong>Snapshot step:</strong> While it runs, explain that the first node takes EBS snapshots of all instances — this is the safety net. 'If anything goes wrong during patching, we restore to this point.'"
@@ -77,6 +84,27 @@ patch-cloud-stack:
     - "<strong>Deploy Cloud Stack in AWS</strong> — Required prerequisite; creates the five target VMs"
     - "<strong>Linux | Patching</strong> — Standalone Linux patching job (simpler, no workflow)"
     - "<strong>Linux | Register with Insights</strong> — Register RHEL hosts with RHSM for full advisory access"
+
+cloud-destroy-stack:
+  description: >-
+    Tears down everything created by Deploy Cloud Stack in AWS — terminates all five stack VMs
+    in parallel, deletes the VPC and related networking resources, deletes the keypair, and
+    re-syncs the AWS dynamic inventory so hosts are removed from AAP.
+  one_liner: "Clean teardown of the full demo environment in one workflow"
+  prerequisites:
+    - A stack previously deployed with <strong>Deploy Cloud Stack in AWS</strong>
+    - AWS credential configured
+  survey_prompts:
+    - question: AWS Region
+      variable: aws_region
+      type: multiplechoice
+      required: "Yes"
+  walkthrough:
+    - "<strong>When to use:</strong> Run this at the end of a demo session or when you need to start fresh. It's safe to run even if some VMs are already terminated."
+    - "<strong>Launch:</strong> Select the same AWS region used for Deploy. The workflow handles everything else."
+    - "<strong>Watch the parallel teardown:</strong> All five VMs are terminated simultaneously, then VPC and keypair cleanup happens."
+  related_demos:
+    - "<strong>Deploy Cloud Stack in AWS</strong> — The matching provisioning workflow"
 
 deploy-cloud-stack:
   description: >-

@@ -698,6 +698,27 @@ a {
   background: #222;
 }
 
+/* Detail page links */
+.detail-section a,
+.detail-list a {
+  color: #93c5fd;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.detail-section a:hover,
+.detail-list a:hover {
+  color: #bfdbfe;
+}
+
+.detail-section code {
+  font-size: 13px;
+  background: #1a1a1a;
+  padding: 2px 6px;
+  border-radius: 4px;
+  color: #ddd;
+}
+
 @media (max-width: 900px) {
   .app {
     flex-direction: column;
