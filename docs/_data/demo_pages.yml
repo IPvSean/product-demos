@@ -1,3 +1,4 @@
+---
 patch-cloud-stack:
   description: >-
     Enterprise-grade patching workflow with snapshot safety, parallel RHEL and Windows paths,

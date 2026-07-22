@@ -15,7 +15,7 @@
 
 - name: Initialize RHSM check result
   ansible.builtin.set_fact:
-    _rhsm_id_check: { rc: 1 }
+    _rhsm_id_check: {rc: 1}
 
 - name: Check RHSM registration status
   ansible.builtin.command: subscription-manager identity
