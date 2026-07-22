@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% if page.demo_slug %}{% assign page_demo = site.data.demos | where: "slug", page.demo_slug | first %}{{ page_demo.title }} · {% elsif page.title %}{{ page.title }} · {% endif %}{{ site.title }}</title>
+  <meta name="description" content="{% if page.demo_slug %}{{ page_demo.blurb }}{% else %}{{ page.description | default: site.description }}{% endif %}">
+  <link rel="icon" href="{{ '/favicon.ico' | relative_url }}" sizes="any">
+  <link rel="icon" type="image/png" href="{{ '/assets/icons/favicon-32x32.png' | relative_url }}" sizes="32x32">
+  <link rel="icon" type="image/png" href="{{ '/assets/icons/favicon-16x16.png' | relative_url }}" sizes="16x16">
+  <link rel="apple-touch-icon" href="{{ '/assets/icons/apple-touch-icon.png' | relative_url }}">
+  <link rel="stylesheet" href="{{ '/assets/css/site.css' | relative_url }}">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <a href="{{ '/' | relative_url }}" class="sidebar-logo">
+        {% include logo-mark.html %}
+        <span class="logo-text">Ansible Product Demos</span>
+      </a>
+
+      {% if page.demo_slug %}
+        <a href="{{ '/' | relative_url }}" class="nav-link sidebar-back">← All demos</a>
+      {% else %}
+        <nav class="sidebar-nav">
+          <p class="nav-heading">Explore</p>
+          <a href="{{ '/' | relative_url }}" class="nav-link{% if page.url == '/' %} active{% endif %}">All demos</a>
+        </nav>
+      {% endif %}
+
+      {% if page.demo_slug %}
+        {% include demo-sidebar-toc.html %}
+      {% endif %}
+
+      {% include sidebar-footer.html %}
+    </aside>
+
+    <div class="content-column">
+      <main class="main">
+        {{ content }}
+      </main>
+    </div>
+  </div>
+
+  {% if page.mermaid or page.layout == 'demo-detail' %}
+  <script type="module">
+    import mermaid from 'https://cdn.jsdelivr.net/npm/mermaid@11/dist/mermaid.esm.min.mjs';
+    mermaid.initialize({
+      startOnLoad: true,
+      theme: 'dark',
+      themeVariables: {
+        primaryColor: '#1f1f1f',
+        primaryTextColor: '#e8e8e8',
+        primaryBorderColor: '#444',
+        lineColor: '#666',
+        secondaryColor: '#141414',
+        tertiaryColor: '#0a0a0a'
+      }
+    });
+  </script>
+  {% endif %}
+
+  {% if page.layout == 'default' and page.url == '/' %}
+  <script src="{{ '/assets/js/filters.js' | relative_url }}"></script>
+  {% endif %}
+
+  {% if page.demo_slug %}
+  <script src="{{ '/assets/js/demo-toc.js' | relative_url }}"></script>
+  {% endif %}
+</body>
+</html>
