@@ -1,11 +1,23 @@
 ---
 - name: Patch compliance report
-  hosts: "{{ _hosts | default('os_linux') }}:{{ _hosts_windows | default('os_windows') }}"
+  hosts: "{{ _hosts | default('os_linux') }}:{{ _hosts_windows | default('os_windows') }}:{{ _report_server | default('reports') }}"
   gather_facts: true
 
   vars:
-    cve_advisory_ids: "{{ input_cve_ids | default(['RHSA-2024:3138', 'CVE-2024-33599']) }}"
-    target_kb_ids: "{{ input_kb_ids | default(['KB5044284', 'KB5044030']) }}"
+    _raw_cve_input: "{{ input_cve_ids | default('RHSA-2024:3138, CVE-2024-33599') }}"
+    cve_advisory_ids: >-
+      {% if _raw_cve_input is string %}
+        {{ (_raw_cve_input | replace(',', ' ')).split() | map('trim') | list }}
+      {% else %}
+        {{ _raw_cve_input }}
+      {% endif %}
+    _raw_kb_input: "{{ input_kb_ids | default('KB5044284, KB5044030') }}"
+    target_kb_ids: >-
+      {% if _raw_kb_input is string %}
+        {{ (_raw_kb_input | replace(',', ' ')).split() | map('trim') | list }}
+      {% else %}
+        {{ _raw_kb_input }}
+      {% endif %}
     report_server: "{{ _report_server | default('reports') }}"
 
   tasks:

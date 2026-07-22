@@ -5,7 +5,13 @@
   gather_facts: true
 
   vars:
-    cve_advisory_ids: "{{ input_cve_ids | default(['RHSA-2024:3138', 'CVE-2024-33599']) }}"
+    _raw_cve_input: "{{ input_cve_ids | default('RHSA-2024:3138, CVE-2024-33599') }}"
+    cve_advisory_ids: >-
+      {% if _raw_cve_input is string %}
+        {{ (_raw_cve_input | replace(',', ' ')).split() | map('trim') | list }}
+      {% else %}
+        {{ _raw_cve_input }}
+      {% endif %}
 
   tasks:
     - name: Query DNF for targeted advisories

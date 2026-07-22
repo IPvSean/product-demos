@@ -1,10 +1,16 @@
 ---
 - name: Rollback targeted Windows security patches
-  hosts: "{{ _hosts | default('os_windows') }}"
+  hosts: "{{ _hosts_windows | default('os_windows') }}"
   gather_facts: false
 
   vars:
-    target_kb_ids: "{{ input_kb_ids | default(['KB5044284', 'KB5044030']) }}"
+    _raw_kb_input: "{{ input_kb_ids | default('KB5044284, KB5044030') }}"
+    target_kb_ids: >-
+      {% if _raw_kb_input is string %}
+        {{ (_raw_kb_input | replace(',', ' ')).split() | map('trim') | list }}
+      {% else %}
+        {{ _raw_kb_input }}
+      {% endif %}
 
   tasks:
     - name: Check KB status and uninstall
