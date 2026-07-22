@@ -9,26 +9,34 @@
     cve_advisory_ids: "{{ (raw_cve_input.split(',') | map('trim') | list) if raw_cve_input is string else raw_cve_input }}"
 
   tasks:
+    - name: Check RHSM registration
+      ansible.builtin.command: subscription-manager identity
+      register: rhsm_check
+      failed_when: false
+      changed_when: false
+
     - name: Apply specific advisories via dnf
       ansible.builtin.command:
         cmd: "dnf update --advisory={{ cve_advisory_ids | join(' --advisory=') }} -y"
       register: dnf_result
       changed_when: "'Nothing to do' not in dnf_result.stdout"
+      when: rhsm_check.rc == 0
 
     - name: Check if reboot is required
       ansible.builtin.command: needs-restarting -r
       register: reboot_check
       failed_when: false
       changed_when: false
+      when: rhsm_check.rc == 0
 
     - name: Set reboot_required fact
       ansible.builtin.set_fact:
-        reboot_required: "{{ reboot_check.rc != 0 }}"
+        reboot_required: "{{ reboot_check.rc | default(0) != 0 }}"
         cacheable: true
 
     - name: Report status
       ansible.builtin.debug:
         msg:
           - "Target Advisories: {{ cve_advisory_ids | join(', ') }}"
-          - "Patching status: {{ 'Changes applied' if dnf_result.changed else 'No updates needed' }}"
+          - "Patching status: {{ 'SKIPPED (host not registered with RHSM)' if rhsm_check.rc != 0 else ('Changes applied' if dnf_result.changed else 'No updates needed') }}"
           - "Reboot required: {{ reboot_required }}"
