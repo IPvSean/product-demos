@@ -1,4 +1,9 @@
 ---
+# Disable async for gateway roles to work around ansible.platform 2.7
+# action plugin incompatibility (redhat-cop/infra.aap_configuration#1368).
+# Remove once the EE ships ansible.platform >= 2.7.20260615.
+gateway_configuration_async_retries: 0
+
 aap_user_accounts:
   - username: apd-admin
     email: apd-admin@example.com
