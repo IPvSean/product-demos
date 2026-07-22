@@ -4,6 +4,11 @@
 # hosts are automatically registered. Otherwise the host is flagged as
 # unregistered and downstream tasks can handle it gracefully.
 #
+# Three outcomes (all set rhsm_registered / rhsm_unregistered facts):
+#   1. Already registered          → continues normally
+#   2. Credential works            → registers, then continues normally
+#   3. No credential or bad creds  → skips gracefully, no failure
+#
 # Sets facts:
 #   rhsm_registered: bool  – true when the host has valid RHSM identity
 #   rhsm_unregistered: bool – inverse, for convenience in Jinja conditionals
@@ -21,6 +26,8 @@
     - rhsm_activation_key is defined
     - rhsm_org_id != 'REPLACEME'
     - rhsm_activation_key != 'REPLACEME'
+    - rhsm_org_id | length > 0
+    - rhsm_activation_key | length > 0
   block:
     - name: Remove RHUI client packages
       ansible.builtin.dnf:
@@ -38,11 +45,24 @@
         state: present
         activationkey: "{{ rhsm_activation_key }}"
         org_id: "{{ rhsm_org_id }}"
-      register: _rhsm_register
 
     - name: Verify registration succeeded
       ansible.builtin.command: subscription-manager identity
       register: _rhsm_id_check
+      changed_when: false
+
+  rescue:
+    - name: Log registration failure
+      ansible.builtin.debug:
+        msg: >-
+          RHSM registration failed for {{ inventory_hostname }}.
+          Check the RHSM Registration credential in AAP
+          (org_id and activation_key). Continuing without registration.
+
+    - name: Re-check identity after failed attempt
+      ansible.builtin.command: subscription-manager identity
+      register: _rhsm_id_check
+      failed_when: false
       changed_when: false
 
 - name: Set RHSM status facts
