@@ -148,7 +148,7 @@
 
     - name: Copy AAP logo to web root
       ansible.builtin.copy:
-        src: "{{ playbook_dir }}/../docs/assets/logos/red-hat-aap-reverse.png"
+        src: "{{ playbook_dir }}/files/aap-logo-standard.png"
         dest: /var/www/html/aap-logo.png
         mode: "0644"
 
@@ -165,9 +165,9 @@
               <style>
                   body { font-family: 'Red Hat Display', 'Segoe UI', sans-serif; margin: 20px; background-color: #f0f0f0; }
                   .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 98%; margin: auto; }
-                  .report-header { display: flex; align-items: center; gap: 18px; margin-bottom: 10px; background: #1a1a2e; padding: 16px 20px; border-radius: 8px; }
+                  .report-header { display: flex; align-items: center; gap: 18px; margin-bottom: 10px; }
                   .report-header img { height: 42px; }
-                  .report-header h1 { margin: 0; font-size: 1.6em; color: #fff; }
+                  .report-header h1 { margin: 0; font-size: 1.6em; }
                   table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
                   th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; vertical-align: top; word-wrap: break-word; }
                   th { background-color: #1a1a2e; color: white; }
