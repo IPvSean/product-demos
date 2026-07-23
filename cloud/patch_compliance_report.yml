@@ -66,7 +66,6 @@
         - name: Set RHEL compliance status
           ansible.builtin.set_fact:
             compliance_status: "{{ 'UNREGISTERED' if rhsm_unregistered | default(false) else ('VULNERABLE' if (missing_targets | length > 0) else 'COMPLIANT') }}"
-            os_label: "{{ ansible_distribution }} {{ ansible_distribution_major_version }}"
             cacheable: true
 
     - name: Windows audit block
@@ -113,13 +112,20 @@
         - name: Set Windows compliance status
           ansible.builtin.set_fact:
             compliance_status: "{{ 'VULNERABLE' if (missing_targets | length > 0) else 'COMPLIANT' }}"
-            os_label: "{{ ansible_distribution | default('Windows') }}"
             cacheable: true
+
+    - name: Set OS label
+      ansible.builtin.set_fact:
+        os_label: >-
+          {{ ansible_distribution | default('Unknown') }}
+          {{ ansible_distribution_major_version | default('') }}
+        cacheable: true
 
     - name: Display compliance summary
       ansible.builtin.debug:
         msg:
           - "Host: {{ inventory_hostname }}"
+          - "OS: {{ os_label | default('Unknown') }}"
           - "Status: {{ compliance_status | default('UNKNOWN') }}"
           - "Missing Targets: {{ missing_targets | default([]) | join(', ') or 'None' }}"
           - "Reboot Needed: {{ reboot_needed | default('UNKNOWN') }}"
