@@ -12,6 +12,10 @@
     - name: Ensure RHSM registration
       ansible.builtin.include_tasks: tasks/rhsm_ensure_registered.yml
 
+    - name: Ensure swap for DNF operations
+      ansible.builtin.include_tasks: tasks/ensure_swap.yml
+      when: rhsm_registered
+
     - name: Apply specific advisories via dnf
       ansible.builtin.command:
         cmd: "dnf update --advisory={{ cve_advisory_ids | join(' --advisory=') }} -y"
