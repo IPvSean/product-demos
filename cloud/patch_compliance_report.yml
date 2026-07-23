@@ -206,7 +206,7 @@
 
     - name: Retrieve public IP address
       ansible.builtin.uri:
-        url: https://ifconfig.me
+        url: https://checkip.amazonaws.com
         return_content: true
       register: public_ip_report
       ignore_errors: true
@@ -214,4 +214,4 @@
 
     - name: Display report URL
       ansible.builtin.debug:
-        msg: "Compliance report available at http://{{ public_ip_report.content | default(ansible_host) }}/patch_report.html"
+        msg: "Compliance report available at http://{{ (public_ip_report.content | default(ansible_host)) | trim }}/patch_report.html"
