@@ -599,6 +599,7 @@ controller_workflows:
       compliance report for both RHEL and Windows EC2 instances.
       Based on jopaik/patch_demo.
     organization: Ansible Product Demos (APD)
+    allow_simultaneous: true
     notification_templates_started: Telemetry
     notification_templates_success: Telemetry
     notification_templates_error: Telemetry
