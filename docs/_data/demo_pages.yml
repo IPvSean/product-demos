@@ -13,7 +13,7 @@ patch-cloud-stack:
     - The HTML compliance report is a tangible artifact you can show stakeholders
     - Covers targeted advisory patching (RHSA/CVE for RHEL, KB for Windows), not just "update everything"
   prerequisites:
-    - "<strong>If using RHDP (demo.redhat.com):</strong> Run <strong>APD | Multi-demo setup</strong> — this configures all demo categories at once, including the cloud patching templates and credentials. AWS and APD Machine credentials are pre-configured for you."
+    - "<strong>If using RHDP (demo.redhat.com):</strong> Run <strong>APD | Multi-demo setup</strong> to configure all demo categories at once, or run <strong>APD | Single demo setup</strong> and choose <code>cloud</code> — either option configures the cloud patching templates and credentials. AWS and APD Machine credentials are pre-configured for you."
     - "<strong>If using your own installation:</strong> Run <strong>APD | Single demo setup</strong> and choose <code>cloud</code>. You will also need to configure the <strong>AWS</strong> credential (Access Key + Secret Key), add an SSH private key and Windows username/password to <strong>APD Machine Credential</strong>, and ensure you have the target VMs, VPC, and keypair provisioned."
     - "Run <strong>Deploy Cloud Stack in AWS</strong> to create the five target VMs (aws_rhel8, aws_rhel9, aws-dc, aws_win1, reports)"
     - "<strong>RHSM Registration credential:</strong> Fill in your Red Hat org ID and activation key (see credential setup below). <strong>Without this, all RHEL patching steps are skipped</strong> — the workflow still succeeds but only Windows hosts actually get patched. RHEL hosts will show as SKIPPED/UNREGISTERED in the output and compliance report."
