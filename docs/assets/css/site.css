@@ -18,11 +18,11 @@ html {
   --accent: #22c55e;
   --accent-dim: #16a34a;
   --accent-glow: rgba(34, 197, 94, 0.12);
-  --bg-body: #071209;
-  --bg-sidebar: #061008;
-  --bg-surface: #0d1f12;
-  --bg-surface-hover: #132a18;
-  --border: #1a3322;
+  --bg-body: #0a0a0a;
+  --bg-sidebar: #080808;
+  --bg-surface: #141414;
+  --bg-surface-hover: #1e1e1e;
+  --border: #222222;
   --border-hover: #22c55e;
   --text-primary: #e8f5e9;
   --text-secondary: #81c784;
