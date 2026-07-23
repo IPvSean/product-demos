@@ -1,21 +1,21 @@
 (function () {
   var categoryPills = document.querySelectorAll('[data-filter-category]');
-  var cards = document.querySelectorAll('.demo-card');
+  var items = document.querySelectorAll('.demo-card, .demo-row');
   var searchInput = document.getElementById('demo-search');
   var emptyState = document.getElementById('filter-empty');
 
-  if (!cards.length) return;
+  if (!items.length) return;
 
   var activeCategory = 'all';
 
-  function cardMatchesCategory(card, category) {
+  function itemMatchesCategory(item, category) {
     if (category === 'all') return true;
-    return card.dataset.category === category;
+    return item.dataset.category === category;
   }
 
-  function cardMatchesSearch(card, query) {
+  function itemMatchesSearch(item, query) {
     if (!query) return true;
-    var haystack = (card.dataset.search || '').toLowerCase();
+    var haystack = (item.dataset.search || '').toLowerCase();
     return haystack.indexOf(query) >= 0;
   }
 
@@ -29,16 +29,16 @@
     var query = searchInput ? searchInput.value.trim().toLowerCase() : '';
     var visibleCount = 0;
 
-    cards.forEach(function (card) {
+    items.forEach(function (item) {
       var show =
-        cardMatchesCategory(card, activeCategory) &&
-        cardMatchesSearch(card, query);
-      card.classList.toggle('hidden', !show);
+        itemMatchesCategory(item, activeCategory) &&
+        itemMatchesSearch(item, query);
+      item.classList.toggle('hidden', !show);
       if (show) visibleCount += 1;
     });
 
     document.querySelectorAll('.section').forEach(function (section) {
-      var visible = section.querySelectorAll('.demo-card:not(.hidden)').length;
+      var visible = section.querySelectorAll('.demo-card:not(.hidden), .demo-row:not(.hidden)').length;
       section.style.display = visible > 0 ? '' : 'none';
     });
 

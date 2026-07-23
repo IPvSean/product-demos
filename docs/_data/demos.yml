@@ -19,7 +19,7 @@
     - Patching
     - Compliance
   thumbnail:
-    gradient: "linear-gradient(135deg, #008c9e 0%, #004d56 100%)"
+    gradient: "linear-gradient(135deg, #16a34a 0%, #052e16 100%)"
     icon: "🩹"
   blurb: "Enterprise-grade patching workflow with EBS snapshots, parallel RHEL and Windows paths, automatic rollback on failure, and a consolidated compliance report."
   stats:
@@ -62,7 +62,7 @@
     - Survey
     - AWS
   thumbnail:
-    gradient: "linear-gradient(135deg, #059669 0%, #064e3b 100%)"
+    gradient: "linear-gradient(135deg, #15803d 0%, #14532d 100%)"
     icon: "🚀"
   blurb: "One-click workflow to provision a full demo stack — VPC, keypair, and five VMs (2 Windows, 2 RHEL, 1 report server) — with inventory sync and VPC report."
   stats:
@@ -104,7 +104,7 @@
   featured: true
   tags: []
   thumbnail:
-    gradient: "linear-gradient(135deg, #333 0%, #1a1a1a 100%)"
+    gradient: "linear-gradient(135deg, #1a3322 0%, #0a1a0e 100%)"
     icon: "🔮"
   blurb: "Have a demo idea? Fork the repo, add your playbook, and submit a PR. See the contributing guide for details."
   stats: {}
