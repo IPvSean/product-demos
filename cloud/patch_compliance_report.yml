@@ -161,6 +161,7 @@
           <html>
           <head>
               <title>Patch Compliance Report</title>
+              <link rel="icon" type="image/png" href="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAEAAAABACAYAAACqaXHeAAAB+ElEQVR4nO2bwXXDIAyGpf+xQqboAJ2gQ/SYGTpHZ/AxQ3SCDNApMkR69eNBLIGQceXv5gRL+mWMZQxEJycnkWFPZ5e3j6e07eP3xyU2nkXwXgnh2YWPTgQfRfioRLCX8Mf1U293uQ1PBGhS8dLzensdZhXvlQRuOUnqsFe89nZouSV4T/GX5XZftX8XtDdPAqQNrUf5tfjScZdtRZyg4GDGZ7wF0nhhaUxDfs9LxgAtkriThZFWRoguxf9qUEzkyPPrKm7L3wt5AK+rrxHf0r5VByg4+C+j/hY1PUlryLK8HeVbWjFWe0AtW3uK11CLs6QLvUZnRRovLI3NhiRu3uoqGvGWjy7LOmE9JuRFEaxGf0/xPf5yfanJiPI9fjQ98aDHWenYm954QMEBBQczvsd7xpMsnO5NTzyg4ICCAwoOKDiw+trqNYfX6y/Xx5J62eJtsKV2t0hqPjmy+TLUO8MyE5K4YWlsJqTxovRjbRw4ShJqcZZ0JSvjHrNIIy4A9l6n50VNDyg4ePWnZS/QPtIs64ppPo6yc7EkIUmyN+ozmcfc4lYvhoWRFjzmFiVxw9LYTEjjBQUHmsaWvWDk3KImTm5xEHqlqPda4dGrxtFyksZpb/0+esk8Wk/0SILHfgEmQ8LuGMkJu2coJ+yusSPtGzw5odj8AbouGEQ1H9H2AAAAAElFTkSuQmCC">
               <style>
                   body { font-family: 'Red Hat Display', 'Segoe UI', sans-serif; margin: 20px; background-color: #f0f0f0; }
                   .container { background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 98%; margin: auto; }
