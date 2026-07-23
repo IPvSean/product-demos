@@ -1,7 +1,7 @@
 ---
 - name: Post-check patch verification - Windows
   hosts: "{{ _hosts_windows | default('os_windows') }}"
-  gather_facts: true
+  gather_facts: false
 
   vars:
     _raw_kb_input: "{{ input_kb_ids | default('KB5044284, KB5044030') }}"

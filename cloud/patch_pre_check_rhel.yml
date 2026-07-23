@@ -1,8 +1,9 @@
 ---
 - name: Pre-check patch applicability - RHEL
   hosts: "{{ _hosts | default('os_linux') }}"
+  strategy: free
   become: true
-  gather_facts: true
+  gather_facts: false
 
   vars:
     _raw_cve_input: "{{ input_cve_ids | default('RHSA-2024:3138, CVE-2024-33599') }}"
@@ -18,7 +19,7 @@
 
     - name: Query DNF for targeted advisories
       ansible.builtin.command: >-
-        dnf updateinfo list
+        dnf updateinfo list --setopt=metadata_expire=7200
         {{ cve_advisory_ids | map('regex_replace', '^', '--advisory=') | join(' ') }}
       register: rhel_check
       changed_when: false

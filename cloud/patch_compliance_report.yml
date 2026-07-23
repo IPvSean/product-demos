@@ -11,7 +11,9 @@
 
   tasks:
     - name: RHEL audit block
-      when: ansible_os_family == "RedHat"
+      when:
+        - ansible_os_family == "RedHat"
+        - compliance_status is not defined
       become: true
       block:
         - name: Ensure RHSM registration
@@ -23,14 +25,14 @@
 
         - name: Check RHEL for targeted advisories
           ansible.builtin.command: >-
-            dnf updateinfo list
+            dnf updateinfo list --setopt=metadata_expire=7200
             {{ cve_advisory_ids | map('regex_replace', '^', '--advisory=') | join(' ') }}
           register: rhel_target_check
           changed_when: false
           when: rhsm_registered
 
         - name: Get all missing security advisories
-          ansible.builtin.command: "dnf updateinfo list security --quiet"
+          ansible.builtin.command: "dnf updateinfo list security --quiet --setopt=metadata_expire=7200"
           register: rhel_all_vulns
           changed_when: false
           when: rhsm_registered
@@ -67,7 +69,9 @@
             cacheable: true
 
     - name: Windows audit block
-      when: ansible_os_family == "Windows"
+      when:
+        - ansible_os_family == "Windows"
+        - compliance_status is not defined
       block:
         - name: Force Windows Update scan
           ansible.windows.win_shell: |

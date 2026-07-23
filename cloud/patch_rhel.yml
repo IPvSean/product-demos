@@ -1,6 +1,7 @@
 ---
 - name: Patch specific RHEL CVEs
   hosts: "{{ _hosts | default('os_linux') }}"
+  strategy: free
   become: true
   gather_facts: false
 
@@ -18,7 +19,7 @@
 
     - name: Apply specific advisories via dnf
       ansible.builtin.command:
-        cmd: "dnf update --advisory={{ cve_advisory_ids | join(' --advisory=') }} -y"
+        cmd: "dnf update --setopt=metadata_expire=7200 --advisory={{ cve_advisory_ids | join(' --advisory=') }} -y"
       register: dnf_result
       changed_when: "'Nothing to do' not in dnf_result.stdout"
       when: rhsm_registered
