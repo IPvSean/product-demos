@@ -247,8 +247,7 @@
                           <li>Re-run this workflow &mdash; hosts will be auto-registered and patched</li>
                       </ol>
                       <p style="margin-top: 8px; margin-bottom: 0; font-size: 12px; color: #6a6e73;">
-                          Find your org ID at <a href="https://access.redhat.com/management">access.redhat.com/management</a>
-                          &bull; Create activation keys at <a href="https://access.redhat.com/management/activation_keys">Activation Keys</a>
+                          Find your org ID and activation keys at <a href="https://console.redhat.com/insights/connector/activation-key">console.redhat.com/insights/connector/activation-key</a>
                       </p>
                   </div>
                   {% endif %}
