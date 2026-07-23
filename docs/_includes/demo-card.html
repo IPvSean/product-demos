@@ -40,6 +40,7 @@
         {% if demo.stats.playbooks > 0 %}
           <span>{{ demo.stats.playbooks }} playbook{% if demo.stats.playbooks != 1 %}s{% endif %}</span>
         {% endif %}
+        <span class="demo-card__author">{{ demo.author | default: "Unknown" }}</span>
       </div>
     </div>
   </a>

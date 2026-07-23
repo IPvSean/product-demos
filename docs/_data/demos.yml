@@ -9,6 +9,7 @@
   subtitle: "Snapshot, patch, verify, restore — across RHEL and Windows"
   category: cloud
   status: active
+  author: "Joon Paik <jopaik@redhat.com>"
   featured: true
   is_workflow: true
   tags:

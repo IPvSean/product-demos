@@ -474,6 +474,11 @@ a {
   color: #555;
 }
 
+.demo-card__author {
+  font-style: italic;
+  color: #667a8a;
+}
+
 .demo-card.hidden {
   display: none;
 }
@@ -544,6 +549,24 @@ a {
   border: none;
   border-top: 1px solid #1c2633;
   margin: 0;
+}
+
+.detail-meta-bar {
+  margin: 12px 0 24px;
+  font-size: 13px;
+  color: #667a8a;
+}
+
+.detail-meta-bar__author {
+  font-style: italic;
+}
+
+.detail-special-thanks {
+  border-top: 1px solid #1c2633;
+  padding-top: 24px;
+  margin-top: 40px;
+  font-style: italic;
+  color: #667a8a;
 }
 
 .detail-section {

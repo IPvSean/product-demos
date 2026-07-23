@@ -86,6 +86,7 @@ patch-cloud-stack:
     - "<strong>Deploy Cloud Stack in AWS</strong> — Required prerequisite; creates the five target VMs"
     - "<strong>Linux | Patching</strong> — Standalone Linux patching job (simpler, no workflow)"
     - "<strong>Linux | Register with Insights</strong> — Register RHEL hosts with RHSM for full advisory access"
+  special_thanks: "Joon Paik <jopaik@redhat.com> — original patch demo author"
 
 cloud-destroy-stack:
   description: >-

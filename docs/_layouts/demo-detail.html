@@ -24,6 +24,10 @@ mermaid: true
   <hr class="detail-divider">
 </div>
 
+<div class="detail-meta-bar">
+  <span class="detail-meta-bar__author">Author: {{ demo.author | default: "Unknown" }}</span>
+</div>
+
 {% assign description = detail.description %}
 {% if description or detail.why_it_matters %}
 <section class="detail-overview">
@@ -159,5 +163,12 @@ mermaid: true
       <li>{{ item }}</li>
     {% endfor %}
   </ul>
+</section>
+{% endif %}
+
+{% if detail.special_thanks %}
+<section class="detail-section detail-special-thanks" id="special-thanks">
+  <h2>Special thanks</h2>
+  <p>{{ detail.special_thanks }}</p>
 </section>
 {% endif %}
