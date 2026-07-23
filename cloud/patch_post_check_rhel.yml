@@ -12,11 +12,6 @@
     - name: Ensure RHSM registration
       ansible.builtin.include_tasks: tasks/rhsm_ensure_registered.yml
 
-    - name: Refresh DNF metadata
-      ansible.builtin.command: dnf makecache
-      changed_when: false
-      when: rhsm_registered
-
     - name: Query DNF for targeted advisories after patching
       ansible.builtin.command: >-
         dnf updateinfo list
