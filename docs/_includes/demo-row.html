@@ -25,5 +25,5 @@
       {% endfor %}
     </div>
   </td>
-  <td class="demo-row__author">{{ demo.author | default: "Unknown" }}</td>
+  <td class="demo-row__author">{% if demo.author %}{{ demo.author }}{% endif %}</td>
 </tr>

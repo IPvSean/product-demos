@@ -55,13 +55,26 @@ description: Browse Ansible Product Demos for Red Hat Ansible Automation Platfor
   </div>
 </section>
 
+<hr class="section-divider">
+
 <section class="section" id="all-demos">
   <h2 class="section-heading">All demos</h2>
   <table class="demo-table">
-    {% for demo in all_demos %}
-      {% unless demo.featured %}
-        {% include demo-row.html demo=demo %}
-      {% endunless %}
-    {% endfor %}
+    <thead>
+      <tr class="demo-table__header">
+        <th></th>
+        <th>Demo</th>
+        <th>Category</th>
+        <th>Tags</th>
+        <th>Author</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for demo in all_demos %}
+        {% unless demo.featured %}
+          {% include demo-row.html demo=demo %}
+        {% endunless %}
+      {% endfor %}
+    </tbody>
   </table>
 </section>
