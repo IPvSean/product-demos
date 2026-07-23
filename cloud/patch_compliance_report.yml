@@ -136,6 +136,12 @@
         state: started
         enabled: true
 
+    - name: Copy AAP logo to web root
+      ansible.builtin.copy:
+        src: "{{ playbook_dir }}/../docs/assets/logos/red-hat-aap-reverse.png"
+        dest: /var/www/html/aap-logo.png
+        mode: "0644"
+
     - name: Generate HTML compliance report
       ansible.builtin.copy:
         dest: /var/www/html/patch_report.html
@@ -172,7 +178,7 @@
           <body>
               <div class="container">
                   <div class="report-header">
-                      <img src="data:image/png;base64,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" alt="Red Hat Ansible Automation Platform">
+                      <img src="aap-logo.png" alt="Red Hat Ansible Automation Platform">
                       <h1>Patch Compliance Dashboard</h1>
                   </div>
                   <div class="review-box">
@@ -220,6 +226,9 @@
                                     {% endfor %}
                                 {% else %}
                                     <span style="color: #3e8635; font-style: italic;">No additional vulnerabilities</span>
+                                    {% if hostvars[host].win_total_scanned is defined %}
+                                        <br><span style="color: #6a6e73; font-size: 11px;">(WUA: {{ hostvars[host].win_total_scanned }})</span>
+                                    {% endif %}
                                 {% endif %}
                             </td>
                             {% endif %}
