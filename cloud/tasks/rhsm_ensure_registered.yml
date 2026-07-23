@@ -68,8 +68,22 @@
       failed_when: false
       changed_when: false
 
-- name: Set RHSM status facts
+- name: Final RHSM identity check
+  ansible.builtin.command: subscription-manager identity
+  register: _rhsm_final
+  failed_when: false
+  changed_when: false
+
+- name: Set RHSM status — registered
   ansible.builtin.set_fact:
-    rhsm_registered: "{{ (_rhsm_id_check.rc | default(1)) == 0 }}"
-    rhsm_unregistered: "{{ (_rhsm_id_check.rc | default(1)) != 0 }}"
+    rhsm_registered: true
+    rhsm_unregistered: false
     cacheable: true
+  when: _rhsm_final.rc == 0
+
+- name: Set RHSM status — unregistered
+  ansible.builtin.set_fact:
+    rhsm_registered: false
+    rhsm_unregistered: true
+    cacheable: true
+  when: _rhsm_final.rc != 0
