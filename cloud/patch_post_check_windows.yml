@@ -8,15 +8,6 @@
     target_kb_ids: "{{ (_raw_kb_input.split(',') | map('trim') | list) if _raw_kb_input is string else _raw_kb_input }}"
 
   tasks:
-    - name: Force Windows Update scan
-      ansible.windows.win_shell: |
-        $updateSession = New-Object -ComObject Microsoft.Update.Session
-        $updateSearcher = $updateSession.CreateUpdateSearcher()
-        $searchResult = $updateSearcher.Search("IsInstalled=0")
-        Write-Output "Found $($searchResult.Updates.Count) missing updates"
-      register: win_force_scan
-      changed_when: false
-
     - name: Search WUA for remaining applicable updates
       ansible.windows.win_updates:
         category_names:
@@ -25,26 +16,25 @@
         state: searched
       register: win_post_search
 
-    - name: Verify targeted KBs are resolved
+    - name: Verify all targeted KBs in one pass
       ansible.windows.win_shell: |
-        $targetId = "{{ item }}".ToUpper().Replace("KB", "")
+        $targetKBs = @({{ target_kb_ids | map('regex_replace', '^', "'") | map('regex_replace', '$', "'") | join(',') }})
         $allMissing = @({{ win_post_search.updates | map(attribute='kb') | flatten | map('regex_replace', '^', "'") | map('regex_replace', '$', "'") | join(',') }})
-
-        $installed = Get-HotFix | Where-Object { $_.HotFixID -match $targetId }
-        $isNeeded = $allMissing -contains $targetId
-
-        if ($installed -or (-not $isNeeded)) { exit 0 } else { exit 1 }
-      loop: "{{ target_kb_ids }}"
-      register: win_post_checks
-      failed_when: false
+        $hotfixes = Get-HotFix | Select-Object -ExpandProperty HotFixID
+        $remaining = @()
+        foreach ($kb in $targetKBs) {
+            $id = $kb.ToUpper().Replace("KB", "")
+            $installed = $hotfixes -match $id
+            $needed = $allMissing -contains $id
+            if (-not $installed -and $needed) { $remaining += $kb }
+        }
+        Write-Output ($remaining -join ",")
+      register: kb_post_result
       changed_when: false
 
     - name: Identify any remaining Windows KBs
       ansible.builtin.set_fact:
-        remaining_patches: >-
-          [{% for result in win_post_checks.results if result.rc != 0 %}
-            "{{ result.item }}"{{ "," if not loop.last else "" }}
-          {% endfor %}]
+        remaining_patches: "{{ (kb_post_result.stdout | trim).split(',') | select if (kb_post_result.stdout | trim) else [] }}"
 
     - name: Determine Windows compliance status
       ansible.builtin.set_fact:
