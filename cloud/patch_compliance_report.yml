@@ -126,16 +126,6 @@
         state: started
         enabled: true
 
-    - name: Open firewall for HTTP
-      ansible.posix.firewalld:
-        service: "{{ item }}"
-        permanent: true
-        state: enabled
-        immediate: true
-      loop:
-        - http
-        - https
-
     - name: Generate HTML compliance report
       ansible.builtin.copy:
         dest: /var/www/html/patch_report.html
