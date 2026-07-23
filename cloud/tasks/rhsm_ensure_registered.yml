@@ -45,10 +45,13 @@
         line: 'manage_repos = 1'
 
     - name: Register with RHSM
-      community.general.redhat_subscription:
-        state: present
-        activationkey: "{{ rhsm_activation_key }}"
-        org_id: "{{ rhsm_org_id }}"
+      ansible.builtin.command: >-
+        subscription-manager register
+        --activationkey={{ rhsm_activation_key }}
+        --org={{ rhsm_org_id }}
+        --force
+      register: _rhsm_register
+      changed_when: "'system has been registered' in _rhsm_register.stdout"
 
     - name: Verify registration succeeded
       ansible.builtin.command: subscription-manager identity
