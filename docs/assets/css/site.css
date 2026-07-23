@@ -13,8 +13,8 @@ html {
 body {
   margin: 0;
   font-family: 'Red Hat Display', Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  background: #0a0a0a;
-  color: #e8e8e8;
+  background: #0c1117;
+  color: #e0e6ed;
   line-height: 1.5;
   min-height: 100vh;
 }
@@ -41,8 +41,8 @@ a {
   width: 240px;
   flex-shrink: 0;
   padding: 24px 16px;
-  border-right: 1px solid #1f1f1f;
-  background: #0a0a0a;
+  border-right: 1px solid #1c2633;
+  background: #0c1117;
   position: sticky;
   top: 0;
   height: 100vh;
@@ -61,7 +61,7 @@ a {
 }
 
 .sidebar-logo:hover {
-  background: #141414;
+  background: #141d27;
 }
 
 .logo-icon {
@@ -100,7 +100,7 @@ a {
 
 .nav-link:hover,
 .nav-link.active {
-  background: #141414;
+  background: #141d27;
   color: #fff;
 }
 
@@ -130,9 +130,9 @@ a {
 
 .demo-toc__link:hover,
 .demo-toc__link.active {
-  background: #141414;
+  background: #141d27;
   color: #fff;
-  border-left-color: #e00;
+  border-left-color: #2dd4bf;
 }
 
 .sidebar-footer {
@@ -158,7 +158,7 @@ a {
 .sidebar-footer__credit {
   margin: 0 0 12px;
   padding: 16px 12px 0;
-  border-top: 1px solid #1f1f1f;
+  border-top: 1px solid #1c2633;
   font-size: 12px;
   color: #666;
   line-height: 1.45;
@@ -185,7 +185,7 @@ a {
 }
 
 .sidebar-footer__link:hover {
-  background: #141414;
+  background: #141d27;
   color: #fff;
 }
 
@@ -242,8 +242,8 @@ a {
   width: 100%;
   padding: 11px 14px 11px 42px;
   border-radius: 12px;
-  border: 1px solid #2a2a2a;
-  background: #111;
+  border: 1px solid #1c2633;
+  background: #111820;
   color: #fff;
   font-size: 14px;
   font-family: inherit;
@@ -288,8 +288,8 @@ a {
 .filter-pill {
   padding: 8px 16px;
   border-radius: 999px;
-  border: 1px solid #2a2a2a;
-  background: #111;
+  border: 1px solid #1c2633;
+  background: #111820;
   color: #aaa;
   font-size: 13px;
   font-weight: 500;
@@ -304,7 +304,7 @@ a {
 }
 
 .filter-pill:hover {
-  border-color: #444;
+  border-color: #2dd4bf;
   color: #fff;
 }
 
@@ -350,16 +350,16 @@ a {
 /* Demo card */
 .demo-card {
   border-radius: 16px;
-  background: #141414;
-  border: 1px solid #222;
+  background: #111820;
+  border: 1px solid #1c2633;
   overflow: hidden;
   transition: transform 0.2s, border-color 0.2s, box-shadow 0.2s;
 }
 
 .demo-card:hover {
   transform: translateY(-2px);
-  border-color: #444;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.4);
+  border-color: #2dd4bf;
+  box-shadow: 0 8px 32px rgba(45, 212, 191, 0.08);
 }
 
 .demo-card__link {
@@ -461,7 +461,7 @@ a {
 .tag {
   padding: 3px 8px;
   border-radius: 6px;
-  background: #1f1f1f;
+  background: #1c2633;
   font-size: 11px;
   color: #999;
 }
@@ -542,7 +542,7 @@ a {
 
 .detail-divider {
   border: none;
-  border-top: 1px solid #2a2a2a;
+  border-top: 1px solid #1c2633;
   margin: 0;
 }
 
@@ -565,8 +565,8 @@ a {
 .detail-overview__value {
   padding: 20px 22px;
   border-radius: 12px;
-  background: #0f0f0f;
-  border: 1px solid #222;
+  background: #0e1620;
+  border: 1px solid #1c2633;
 }
 
 .detail-overview__value h2 {
@@ -628,7 +628,7 @@ a {
 .detail-table td {
   padding: 10px 14px;
   text-align: left;
-  border-bottom: 1px solid #222;
+  border-bottom: 1px solid #1c2633;
 }
 
 .detail-table th {
@@ -636,8 +636,8 @@ a {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  color: #666;
-  background: #111;
+  color: #667a8a;
+  background: #111820;
 }
 
 .detail-table td {
@@ -646,15 +646,15 @@ a {
 
 .detail-table code {
   font-size: 12px;
-  background: #1a1a1a;
+  background: #1c2633;
   padding: 2px 6px;
   border-radius: 4px;
   color: #ddd;
 }
 
 .workflow-diagram {
-  background: #111;
-  border: 1px solid #222;
+  background: #111820;
+  border: 1px solid #1c2633;
   border-radius: 12px;
   padding: 24px 16px;
   overflow-x: auto;
@@ -688,32 +688,32 @@ a {
 }
 
 .btn-secondary {
-  background: #1a1a1a;
+  background: #111820;
   color: #fff;
-  border: 1px solid #333;
+  border: 1px solid #1c2633;
 }
 
 .btn-secondary:hover {
-  border-color: #555;
-  background: #222;
+  border-color: #2dd4bf;
+  background: #162030;
 }
 
 /* Detail page links */
 .detail-section a,
 .detail-list a {
-  color: #93c5fd;
+  color: #5eead4;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 
 .detail-section a:hover,
 .detail-list a:hover {
-  color: #bfdbfe;
+  color: #99f6e4;
 }
 
 .detail-section code {
   font-size: 13px;
-  background: #1a1a1a;
+  background: #1c2633;
   padding: 2px 6px;
   border-radius: 4px;
   color: #ddd;
@@ -729,7 +729,7 @@ a {
     height: auto;
     position: relative;
     border-right: none;
-    border-bottom: 1px solid #1f1f1f;
+    border-bottom: 1px solid #1c2633;
   }
 
   .main {
