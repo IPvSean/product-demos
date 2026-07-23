@@ -148,6 +148,8 @@
                   .reboot-NO { color: #adb5bd; }
                   .vuln-tag { display: inline-block; background: #e9ecef; color: #495057; padding: 2px 8px; border-radius: 4px; margin: 2px; font-size: 11px; font-family: 'Red Hat Mono', 'Courier New', monospace; border: 1px solid #dee2e6; }
                   .review-box { background-color: #e7f1fa; border: 1px solid #bee1f4; padding: 15px; border-radius: 8px; margin-bottom: 20px; }
+                  .warning-box { background-color: #fdf7e7; border: 1px solid #f0ab00; padding: 15px; border-radius: 8px; margin-top: 20px; }
+                  .warning-box h3 { margin-top: 0; color: #795600; }
               </style>
           </head>
           <body>
@@ -181,9 +183,14 @@
                       </tr>
                       {% for host in audit_hosts %}
                         {% if hostvars[host] is defined and hostvars[host].compliance_status is defined %}
-                        <tr>
+                        <tr{% if hostvars[host].compliance_status == 'UNREGISTERED' %} style="background-color: #f9f5ee;"{% endif %}>
                             <td>{{ host }}</td>
                             <td><span class="{{ hostvars[host].compliance_status }}">{{ hostvars[host].compliance_status }}</span></td>
+                            {% if hostvars[host].compliance_status == 'UNREGISTERED' %}
+                            <td><span style="color: #6a6e73; font-style: italic;">Unable to check</span></td>
+                            <td><span style="color: #6a6e73; font-style: italic;">Unknown</span></td>
+                            <td><span style="color: #c9190b; font-style: italic;">&#9888; Cannot scan — host is not registered with RHSM</span></td>
+                            {% else %}
                             <td>{{ hostvars[host].missing_targets | join(', ') if hostvars[host].missing_targets else 'None' }}</td>
                             <td><span class="reboot-{{ hostvars[host].reboot_needed }}">{{ hostvars[host].reboot_needed }}</span></td>
                             <td>
@@ -192,13 +199,30 @@
                                         <span class="vuln-tag">{{ vuln }}</span>
                                     {% endfor %}
                                 {% else %}
-                                    <span style="color: #6c757d; font-style: italic;">No additional vulnerabilities</span>
+                                    <span style="color: #3e8635; font-style: italic;">No additional vulnerabilities</span>
                                 {% endif %}
                             </td>
+                            {% endif %}
                         </tr>
                         {% endif %}
                       {% endfor %}
                   </table>
+                  {% set unregistered_count = audit_hosts | map('extract', hostvars) | selectattr('compliance_status', 'defined') | selectattr('compliance_status', 'equalto', 'UNREGISTERED') | list | length %}
+                  {% if unregistered_count > 0 %}
+                  <div class="warning-box">
+                      <h3>&#9888; {{ unregistered_count }} host{{ 's' if unregistered_count > 1 }} not registered with RHSM</h3>
+                      <p style="margin-bottom: 8px;">Unregistered RHEL hosts cannot be scanned for vulnerabilities or patched. To register them:</p>
+                      <ol style="margin: 0; padding-left: 20px;">
+                          <li>In AAP, go to <strong>Resources &rarr; Credentials &rarr; RHSM Registration</strong></li>
+                          <li>Enter your Red Hat <strong>Org ID</strong> and <strong>Activation Key</strong></li>
+                          <li>Re-run this workflow &mdash; hosts will be auto-registered and patched</li>
+                      </ol>
+                      <p style="margin-top: 8px; margin-bottom: 0; font-size: 12px; color: #6a6e73;">
+                          Find your org ID at <a href="https://access.redhat.com/management">access.redhat.com/management</a>
+                          &bull; Create activation keys at <a href="https://access.redhat.com/management/activation_keys">Activation Keys</a>
+                      </p>
+                  </div>
+                  {% endif %}
               </div>
           </body>
           </html>
