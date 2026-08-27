@@ -1,0 +1,49 @@
+---
+- name: Provision RHEL EC2 with Community Terraform
+  hosts: localhost
+  gather_facts: false
+  vars:
+    tf_working_dir: "/tmp/apd-terraform-{{ tf_name_tag | default('tf_rhel9') }}"
+    tf_backend_template: templates/backend_community.tf.j2
+    tf_aws_region: "{{ tf_aws_region | default('us-east-2') }}"
+    tf_name_tag: "{{ tf_name_tag | default('tf_rhel9') }}"
+    tf_instance_type: "{{ tf_instance_type | default('t3.micro') }}"
+    tf_instance_count: "{{ tf_instance_count | default(1) | int }}"
+    tf_owner: "{{ tf_owner | default('apd-demo') }}"
+    tf_blueprint: "{{ tf_blueprint | default('rhel9') }}"
+    tf_deployment: "{{ tf_deployment | default('terraform') }}"
+    tf_purpose: "{{ tf_purpose | default('demo') }}"
+
+  tasks:
+    - name: Stage Terraform workspace
+      ansible.builtin.include_tasks: tasks/stage_terraform_workspace.yml
+
+    - name: Initialize Terraform
+      ansible.builtin.command:
+        cmd: terraform init -input=false
+        chdir: "{{ tf_working_dir }}"
+      changed_when: false
+
+    - name: Apply Terraform configuration
+      ansible.builtin.command:
+        cmd: terraform apply -auto-approve -input=false
+        chdir: "{{ tf_working_dir }}"
+      register: _tf_apply
+      changed_when: "'Apply complete' in _tf_apply.stdout"
+
+    - name: Show Terraform apply output
+      ansible.builtin.debug:
+        var: _tf_apply.stdout_lines
+
+    - name: Read Terraform outputs
+      ansible.builtin.command:
+        cmd: terraform output -json
+        chdir: "{{ tf_working_dir }}"
+      register: _tf_outputs
+      changed_when: false
+
+    - name: Display provisioned instance IPs
+      ansible.builtin.debug:
+        msg: >-
+          Provisioned instance public IPs:
+          {{ (_tf_outputs.stdout | from_json).instance_public_ips.value | join(', ') }}

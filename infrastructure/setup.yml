@@ -287,6 +287,72 @@ controller_templates:
       - OpenShift Credential
       - AAP Credential
 
+  - name: Infrastructure | Terraform Enterprise | Deploy on AWS
+    description: >-
+      Launch a single-node Terraform Enterprise host on AWS EC2 (disk mode,
+      Podman). Bring your own TFE license. Demo use only — not production HA.
+    job_type: run
+    organization: Ansible Product Demos (APD)
+    inventory: APD Controller Local
+    project: Ansible Product Demos
+    playbook: infrastructure/terraform-enterprise/deploy.yml
+    execution_environment: Product Demos EE
+    credentials:
+      - AWS
+      - APD Machine Credential
+    notification_templates_started: Telemetry
+    notification_templates_success: Telemetry
+    notification_templates_error: Telemetry
+    survey_enabled: true
+    survey:
+      name: ''
+      description: ''
+      spec:
+        - question_name: AWS Region
+          type: multiplechoice
+          variable: tfe_aws_region
+          required: true
+          default: us-east-2
+          choices:
+            - us-east-1
+            - us-east-2
+            - us-west-1
+            - us-west-2
+        - question_name: EC2 instance name
+          type: text
+          variable: tfe_instance_name
+          required: true
+          default: apd-tfe
+        - question_name: TFE hostname
+          question_description: >-
+            Hostname embedded in the TFE license (use the public IP if unsure).
+          type: text
+          variable: tfe_hostname
+          required: true
+          default: tfe.local
+        - question_name: Owner tag
+          type: text
+          variable: tfe_owner
+          required: true
+          default: apd-demo
+        - question_name: Terraform Enterprise license
+          question_description: >-
+            Paste the full contents of your terraform.hclic license file.
+          type: textarea
+          variable: tfe_license
+          required: true
+        - question_name: Encryption password
+          type: text
+          variable: tfe_encryption_password
+          required: true
+          default: tfeseed
+        - question_name: SSH public key
+          question_description: >-
+            Optional. Leave blank to derive from APD Machine Credential.
+          type: textarea
+          variable: tfe_ssh_public_key
+          required: false
+
   - name: Infrastructure | HashiCorp Vault
     job_type: run
     inventory: Ansible Product Demos Inventory

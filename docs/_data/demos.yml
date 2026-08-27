@@ -354,6 +354,66 @@
     playbooks: 1
   github_path: cloud/cloud_report.yml
 
+- slug: cloud-terraform-provision-community
+  readme_path: cloud/docs/cloud-terraform-provision-community.md
+  title: "Terraform — Provision RHEL VM (Community)"
+  subtitle: "Open-source Terraform CLI smoke test on AWS"
+  category: cloud
+  status: active
+  is_workflow: true
+  tags:
+    - Workflow
+    - Survey
+    - AWS
+    - Terraform
+  thumbnail:
+    gradient: "linear-gradient(135deg, #0d9488 0%, #065f54 100%)"
+    icon: "🏗️"
+  blurb: "Provision a tagged RHEL EC2 instance with Terraform CLI and sync AWS inventory — engineering validation path without Terraform Enterprise."
+  stats:
+    workflows: 1
+    playbooks: 1
+  url: /demos/cloud-terraform-provision-community/
+  github_path: cloud/setup.yml
+  workflow_mermaid: |
+    graph LR
+      S["🏠 Start"]
+      S --> A
+      A["🏗️ Terraform Apply"] --> B["🔄 Sync Inventory"]
+      style S fill:#212427,stroke:#8a8d90,color:#fff
+      style A fill:#0d9488,stroke:#065f54,color:#fff
+      style B fill:#162c46,stroke:#58a6ff,color:#fff
+
+- slug: cloud-terraform-provision-enterprise
+  readme_path: cloud/docs/cloud-terraform-provision-enterprise.md
+  title: "Terraform — Provision RHEL VM (Enterprise)"
+  subtitle: "Terraform Enterprise or HCP Terraform remote apply"
+  category: cloud
+  status: active
+  is_workflow: true
+  tags:
+    - Workflow
+    - Survey
+    - AWS
+    - Terraform
+  thumbnail:
+    gradient: "linear-gradient(135deg, #5c4d9e 0%, #3b2f6b 100%)"
+    icon: "☁️"
+  blurb: "Push shared HCL to Terraform Enterprise or HCP Terraform, apply remotely, and import instances into APD inventory."
+  stats:
+    workflows: 1
+    playbooks: 1
+  url: /demos/cloud-terraform-provision-enterprise/
+  github_path: cloud/setup.yml
+  workflow_mermaid: |
+    graph LR
+      S["🏠 Start"]
+      S --> A
+      A["☁️ TFE Apply"] --> B["🔄 Sync Inventory"]
+      style S fill:#212427,stroke:#8a8d90,color:#fff
+      style A fill:#5c4d9e,stroke:#a78bfa,color:#fff
+      style B fill:#162c46,stroke:#58a6ff,color:#fff
+
 # ─── Linux ──────────────────────────────────────────────────────────
 
 - slug: linux-register-insights
@@ -1634,3 +1694,23 @@
   stats:
     playbooks: 1
   github_path: infrastructure/opa/add-policy.yml
+
+- slug: infrastructure-terraform-enterprise-deploy
+  readme_path: infrastructure/docs/terraform-enterprise-deploy-aws.md
+  title: "Infrastructure | Terraform Enterprise — Deploy on AWS"
+  subtitle: "Single-node TFE on EC2 with Podman (BYO license)"
+  category: infrastructure
+  status: active
+  tags:
+    - Playbook
+    - Survey
+    - AWS
+    - Terraform
+  thumbnail:
+    gradient: "linear-gradient(135deg, #5c4d9e 0%, #2d1f4e 100%)"
+    icon: "🏗️"
+  blurb: "Deploy Terraform Enterprise on a RHEL 9 EC2 instance for APD demos — disk mode, bring your own license, not production HA."
+  stats:
+    playbooks: 1
+  url: /demos/infrastructure-terraform-enterprise-deploy/
+  github_path: infrastructure/terraform-enterprise/deploy.yml

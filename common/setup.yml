@@ -21,6 +21,14 @@ controller_organizations:
 controller_inventories:
   - name: Ansible Product Demos Inventory
     organization: Ansible Product Demos (APD)
+  - name: APD Controller Local
+    organization: Ansible Product Demos (APD)
+
+controller_hosts:
+  - name: localhost
+    inventory: APD Controller Local
+    variables:
+      ansible_connection: local
 
 controller_credentials:
   - name: AWS

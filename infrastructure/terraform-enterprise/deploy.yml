@@ -1,0 +1,199 @@
+---
+- name: Deploy Terraform Enterprise on AWS EC2
+  hosts: localhost
+  gather_facts: false
+  vars:
+    tfe_instance_name: "{{ tfe_instance_name | default('apd-tfe') }}"
+    tfe_aws_region: "{{ tfe_aws_region | default('us-east-2') }}"
+    tfe_instance_type: "{{ tfe_instance_type | default('m5.xlarge') }}"
+    tfe_root_volume_size: "{{ tfe_root_volume_size | default(120) | int }}"
+    tfe_owner: "{{ tfe_owner | default('apd-demo') }}"
+    tfe_hostname: "{{ tfe_hostname | default('tfe.local') }}"
+    tfe_encryption_password: "{{ tfe_encryption_password | default('tfeseed') }}"
+    tfe_image_version: "{{ tfe_image_version | default('1.2.1') }}"
+    tfe_data_dir: /opt/terraform-enterprise
+    tfe_log_dir: /var/log/terraform-enterprise
+    tfe_license_path: /etc/terraform-enterprise/terraform.hclic
+    tfe_env_file: /etc/terraform-enterprise/tfe.env
+
+  tasks:
+    - name: Resolve SSH public key for EC2 key pair
+      ansible.builtin.include_tasks: "{{ playbook_dir }}/../../cloud/terraform/tasks/resolve_public_key.yml"
+      vars:
+        tf_public_key: "{{ tfe_ssh_public_key | default('') }}"
+
+    - name: Find latest RHEL 9 hourly AMI
+      amazon.aws.ec2_ami_info:
+        region: "{{ tfe_aws_region }}"
+        owners:
+          - "309956199498"
+        filters:
+          name: "RHEL-9*HVM-*Hourly*"
+          architecture: x86_64
+      register: _tfe_rhel_amis
+
+    - name: Set TFE host AMI
+      ansible.builtin.set_fact:
+        tfe_ami_id: >-
+          {{
+            (_tfe_rhel_amis.images | sort(attribute='creation_date'))[-1].image_id
+          }}
+
+    - name: Create security group for Terraform Enterprise
+      amazon.aws.ec2_security_group:
+        name: "{{ tfe_instance_name }}-sg"
+        description: Security group for APD Terraform Enterprise demo
+        region: "{{ tfe_aws_region }}"
+        rules:
+          - proto: tcp
+            ports:
+              - 22
+              - 80
+              - 443
+            cidr_ip: 0.0.0.0/0
+        rules_egress:
+          - proto: all
+            cidr_ip: 0.0.0.0/0
+        tags:
+          Name: "{{ tfe_instance_name }}-sg"
+          managed-by: aap-product-demos
+          apd: "true"
+          purpose: demo
+          deployment: terraform_enterprise
+          owner: "{{ tfe_owner }}"
+      register: _tfe_security_group
+
+    - name: Create EC2 key pair for Terraform Enterprise host
+      amazon.aws.ec2_key:
+        name: "{{ tfe_instance_name }}-key"
+        region: "{{ tfe_aws_region }}"
+        key_material: "{{ tf_public_key }}"
+        state: present
+        tags:
+          owner: "{{ tfe_owner }}"
+
+    - name: Launch Terraform Enterprise EC2 host
+      amazon.aws.ec2_instance:
+        name: "{{ tfe_instance_name }}"
+        region: "{{ tfe_aws_region }}"
+        instance_type: "{{ tfe_instance_type }}"
+        image_id: "{{ tfe_ami_id }}"
+        key_name: "{{ tfe_instance_name }}-key"
+        network:
+          assign_public_ip: true
+        security_groups:
+          - "{{ _tfe_security_group.group_id }}"
+        volumes:
+          - device_name: /dev/sda1
+            ebs:
+              volume_size: "{{ tfe_root_volume_size }}"
+              volume_type: gp3
+              delete_on_termination: true
+        tags:
+          Name: "{{ tfe_instance_name }}"
+          managed-by: aap-product-demos
+          apd: "true"
+          purpose: demo
+          deployment: terraform_enterprise
+          owner: "{{ tfe_owner }}"
+          blueprint: rhel9
+        wait: true
+      register: _tfe_instance
+
+    - name: Show Terraform Enterprise host connection details
+      ansible.builtin.debug:
+        msg:
+          - "Terraform Enterprise host public IP: {{ _tfe_instance.instances[0].public_ip_address }}"
+          - "Configure TFE credential hostname: https://{{ _tfe_instance.instances[0].public_ip_address }}"
+          - "Survey TFE_HOSTNAME was: {{ tfe_hostname }}"
+
+    - name: Add Terraform Enterprise host to inventory
+      ansible.builtin.add_host:
+        name: tfe_host
+        ansible_host: "{{ _tfe_instance.instances[0].public_ip_address }}"
+        ansible_user: ec2-user
+        groups: tfe_deploy_targets
+
+- name: Install Terraform Enterprise on EC2 host
+  hosts: tfe_deploy_targets
+  gather_facts: true
+  become: true
+  vars:
+    tfe_data_dir: /opt/terraform-enterprise
+    tfe_log_dir: /var/log/terraform-enterprise
+    tfe_license_path: /etc/terraform-enterprise/terraform.hclic
+    tfe_env_file: /etc/terraform-enterprise/tfe.env
+
+  tasks:
+    - name: Wait for SSH on Terraform Enterprise host
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+        delay: 10
+
+    - name: Install Podman and dependencies
+      ansible.builtin.dnf:
+        name:
+          - podman
+          - podman-plugins
+        state: present
+
+    - name: Create Terraform Enterprise directories
+      ansible.builtin.file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "{{ tfe_data_dir }}"
+        - "{{ tfe_log_dir }}"
+        - /etc/terraform-enterprise
+        - /etc/containers/systemd
+
+    - name: Install Terraform Enterprise license file
+      ansible.builtin.copy:
+        content: "{{ tfe_license }}"
+        dest: "{{ tfe_license_path }}"
+        mode: "0600"
+      no_log: true
+
+    - name: Template Terraform Enterprise environment file
+      ansible.builtin.template:
+        src: templates/tfe.env.j2
+        dest: "{{ tfe_env_file }}"
+        mode: "0600"
+      no_log: true
+
+    - name: Log in to HashiCorp release registry  # noqa: command-instead-of-shell
+      ansible.builtin.shell: >-
+        podman login --username terraform --password-stdin
+        images.releases.hashicorp.com
+      args:
+        stdin: "{{ tfe_license }}"
+      changed_when: false
+      no_log: true
+
+    - name: Template Podman Quadlet unit for Terraform Enterprise
+      ansible.builtin.template:
+        src: templates/tfe.container.j2
+        dest: /etc/containers/systemd/terraform-enterprise.container
+        mode: "0644"
+
+    - name: Reload systemd and start Terraform Enterprise
+      ansible.builtin.systemd:
+        name: terraform-enterprise
+        enabled: true
+        state: started
+        daemon_reload: true
+
+    - name: Wait for Terraform Enterprise HTTPS port
+      ansible.builtin.wait_for:
+        port: 443
+        host: localhost
+        timeout: 600
+        delay: 15
+
+    - name: Display Terraform Enterprise access information
+      ansible.builtin.debug:
+        msg:
+          - "Terraform Enterprise UI: https://{{ ansible_host }}"
+          - "Create an organization and workspace, then set AWS credentials as workspace env vars."
+          - "Use this URL in the Terraform Enterprise AAP credential (tf_hostname)."

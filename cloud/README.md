@@ -38,6 +38,8 @@ This category of demos shows examples of multi-cloud provisioning and management
 | [**AWS — Peer Networking**](docs/cloud-peer-networking.md) | Create or delete VPC peering infrastructure in AWS for direct network connectivity between VPCs. |
 | [**AWS — Transit Networking**](docs/cloud-transit-networking.md) | Create or delete transit gateway infrastructure in AWS for hub-and-spoke network connectivity. |
 | [**AWS — VPC Report**](docs/cloud-vpc-report.md) | Generate a VPC infrastructure report and publish it to an S3 bucket. |
+| [**Terraform — Provision RHEL VM (Community)**](docs/cloud-terraform-provision-community.md) | Open-source Terraform CLI provision of a tagged RHEL EC2 instance + inventory sync. |
+| [**Terraform — Provision RHEL VM (Enterprise)**](docs/cloud-terraform-provision-enterprise.md) | Push HCL to Terraform Enterprise or HCP Terraform and apply remotely. |
 
 ## Post Setup Setup
 After running the setup job template, there are a few steps required to make the demos fully functional. See post setup actions below.

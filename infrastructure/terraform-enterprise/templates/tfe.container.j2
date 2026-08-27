@@ -1,0 +1,12 @@
+[Container]
+ContainerName=terraform-enterprise
+Image=images.releases.hashicorp.com/hashicorp/terraform-enterprise:{{ tfe_image_version }}
+PublishPort=443:8443
+PublishPort=80:8080
+EnvironmentFile={{ tfe_env_file }}
+Volume={{ tfe_data_dir }}:/var/lib/terraform-enterprise:Z
+Volume={{ tfe_log_dir }}:/var/log/terraform-enterprise:Z,U
+PodmanArgs=--cap-add=CAP_IPC_LOCK
+
+[Install]
+WantedBy=default.target

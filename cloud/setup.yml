@@ -26,6 +26,35 @@ controller_credential_types:
       extra_vars:
         rhsm_org_id: !unsafe '{{ rhsm_org_id }}'
         rhsm_activation_key: !unsafe '{{ rhsm_activation_key }}'
+  - name: Terraform Enterprise Credential Type
+    description: Credentials for HashiCorp Terraform Enterprise or HCP Terraform
+    kind: cloud
+    inputs:
+      fields:
+        - id: hostname
+          type: string
+          label: Terraform Enterprise Hostname
+        - id: org
+          type: string
+          label: Organization
+        - id: workspace
+          type: string
+          label: Workspace
+        - id: token
+          type: string
+          label: Token
+          secret: true
+      required:
+        - hostname
+        - org
+        - workspace
+        - token
+    injectors:
+      extra_vars:
+        tf_hostname: !unsafe '{{ hostname }}'
+        tf_org: !unsafe '{{ org }}'
+        tf_workspace: !unsafe '{{ workspace }}'
+        tf_token: !unsafe '{{ token }}'
 
 controller_credentials:
   - name: RHSM Registration
@@ -36,6 +65,16 @@ controller_credentials:
     inputs:
       rhsm_org_id: REPLACEME
       rhsm_activation_key: REPLACEME
+  - name: Terraform Enterprise Credential
+    credential_type: Terraform Enterprise Credential Type
+    organization: Ansible Product Demos (APD)
+    update_secrets: false
+    state: exists
+    inputs:
+      hostname: REPLACEME
+      org: REPLACEME
+      workspace: REPLACEME
+      token: REPLACEME
 
 controller_execution_environments:
   - name: TMM AWS EE
@@ -398,6 +437,132 @@ controller_templates:
     notification_templates_error: Telemetry
     use_fact_cache: true
 
+  - name: Cloud | Terraform | AWS | Provision VM (Community)
+    job_type: run
+    organization: Ansible Product Demos (APD)
+    inventory: APD Controller Local
+    project: Ansible Product Demos
+    playbook: cloud/terraform/provision_community.yml
+    execution_environment: Product Demos EE
+    credentials:
+      - AWS
+      - APD Machine Credential
+    notification_templates_started: Telemetry
+    notification_templates_success: Telemetry
+    notification_templates_error: Telemetry
+    survey_enabled: true
+    survey:
+      name: ''
+      description: ''
+      spec:
+        - question_name: AWS Region
+          type: multiplechoice
+          variable: tf_aws_region
+          required: true
+          default: us-east-2
+          choices:
+            - us-east-1
+            - us-east-2
+            - us-west-1
+            - us-west-2
+        - question_name: EC2 Name tag prefix
+          question_description: >-
+            Base Name tag for instances (suffix -1, -2 when instance_count > 1).
+          type: text
+          variable: tf_name_tag
+          required: true
+          default: tf_rhel9
+        - question_name: Instance count
+          type: multiplechoice
+          variable: tf_instance_count
+          required: true
+          default: '1'
+          choices:
+            - '1'
+            - '2'
+        - question_name: Instance type
+          type: text
+          variable: tf_instance_type
+          required: true
+          default: t3.micro
+        - question_name: Owner tag
+          type: text
+          variable: tf_owner
+          required: true
+          default: apd-demo
+        - question_name: Blueprint tag
+          type: text
+          variable: tf_blueprint
+          required: true
+          default: rhel9
+        - question_name: SSH public key
+          question_description: >-
+            Optional. Leave blank to derive from APD Machine Credential private key.
+          type: textarea
+          variable: tf_public_key
+          required: false
+
+  - name: Cloud | Terraform | AWS | Provision VM (Enterprise)
+    job_type: run
+    organization: Ansible Product Demos (APD)
+    inventory: APD Controller Local
+    project: Ansible Product Demos
+    playbook: cloud/terraform/provision_enterprise.yml
+    execution_environment: Product Demos EE
+    credentials:
+      - Terraform Enterprise Credential
+      - APD Machine Credential
+    notification_templates_started: Telemetry
+    notification_templates_success: Telemetry
+    notification_templates_error: Telemetry
+    survey_enabled: true
+    survey:
+      name: ''
+      description: ''
+      spec:
+        - question_name: AWS Region
+          type: multiplechoice
+          variable: tf_aws_region
+          required: true
+          default: us-east-2
+          choices:
+            - us-east-1
+            - us-east-2
+            - us-west-1
+            - us-west-2
+        - question_name: EC2 Name tag prefix
+          type: text
+          variable: tf_name_tag
+          required: true
+          default: tf_rhel9
+        - question_name: Instance count
+          type: multiplechoice
+          variable: tf_instance_count
+          required: true
+          default: '1'
+          choices:
+            - '1'
+            - '2'
+        - question_name: Instance type
+          type: text
+          variable: tf_instance_type
+          required: true
+          default: t3.micro
+        - question_name: Owner tag
+          type: text
+          variable: tf_owner
+          required: true
+          default: apd-demo
+        - question_name: Blueprint tag
+          type: text
+          variable: tf_blueprint
+          required: true
+          default: rhel9
+        - question_name: SSH public key
+          type: textarea
+          variable: tf_public_key
+          required: false
+
 controller_workflows:
   - name: Deploy Cloud Stack in AWS
     description: A workflow to deploy a cloud stack
@@ -672,3 +837,129 @@ controller_workflows:
       - identifier: Compliance Report
         unified_job_template: Cloud | AWS | Patch Compliance Report
         all_parents_must_converge: true
+
+  - name: Terraform — Provision RHEL VM (Community)
+    description: >-
+      Provision a RHEL EC2 instance with open-source Terraform CLI, then sync
+      AWS inventory for APD dynamic inventory discovery.
+    organization: Ansible Product Demos (APD)
+    notification_templates_started: Telemetry
+    notification_templates_success: Telemetry
+    notification_templates_error: Telemetry
+    survey_enabled: true
+    survey:
+      name: ''
+      description: ''
+      spec:
+        - question_name: AWS Region
+          type: multiplechoice
+          variable: tf_aws_region
+          required: true
+          default: us-east-2
+          choices:
+            - us-east-1
+            - us-east-2
+            - us-west-1
+            - us-west-2
+        - question_name: EC2 Name tag prefix
+          type: text
+          variable: tf_name_tag
+          required: true
+          default: tf_rhel9
+        - question_name: Instance count
+          type: multiplechoice
+          variable: tf_instance_count
+          required: true
+          default: '1'
+          choices:
+            - '1'
+            - '2'
+        - question_name: Instance type
+          type: text
+          variable: tf_instance_type
+          required: true
+          default: t3.micro
+        - question_name: Owner tag
+          type: text
+          variable: tf_owner
+          required: true
+          default: apd-demo
+        - question_name: Blueprint tag
+          type: text
+          variable: tf_blueprint
+          required: true
+          default: rhel9
+        - question_name: SSH public key
+          type: textarea
+          variable: tf_public_key
+          required: false
+    simplified_workflow_nodes:
+      - identifier: Provision VM
+        unified_job_template: Cloud | Terraform | AWS | Provision VM (Community)
+        success_nodes:
+          - Update Inventory
+      - identifier: Update Inventory
+        unified_job_template: AWS Inventory
+
+  - name: Terraform — Provision RHEL VM (Enterprise)
+    description: >-
+      Push Terraform configuration to Terraform Enterprise or HCP Terraform and
+      apply remotely, then sync AWS inventory.
+    organization: Ansible Product Demos (APD)
+    notification_templates_started: Telemetry
+    notification_templates_success: Telemetry
+    notification_templates_error: Telemetry
+    survey_enabled: true
+    survey:
+      name: ''
+      description: ''
+      spec:
+        - question_name: AWS Region
+          type: multiplechoice
+          variable: tf_aws_region
+          required: true
+          default: us-east-2
+          choices:
+            - us-east-1
+            - us-east-2
+            - us-west-1
+            - us-west-2
+        - question_name: EC2 Name tag prefix
+          type: text
+          variable: tf_name_tag
+          required: true
+          default: tf_rhel9
+        - question_name: Instance count
+          type: multiplechoice
+          variable: tf_instance_count
+          required: true
+          default: '1'
+          choices:
+            - '1'
+            - '2'
+        - question_name: Instance type
+          type: text
+          variable: tf_instance_type
+          required: true
+          default: t3.micro
+        - question_name: Owner tag
+          type: text
+          variable: tf_owner
+          required: true
+          default: apd-demo
+        - question_name: Blueprint tag
+          type: text
+          variable: tf_blueprint
+          required: true
+          default: rhel9
+        - question_name: SSH public key
+          type: textarea
+          variable: tf_public_key
+          required: false
+    simplified_workflow_nodes:
+      - identifier: Provision VM
+        unified_job_template: Cloud | Terraform | AWS | Provision VM (Enterprise)
+        success_nodes:
+          - Update Inventory
+      - identifier: Update Inventory
+        unified_job_template: AWS Inventory

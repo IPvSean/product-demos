@@ -1,0 +1,49 @@
+---
+- name: Resolve SSH public key when not supplied
+  ansible.builtin.include_tasks: resolve_public_key.yml
+  when: tf_public_key | default('') | trim | length == 0
+
+- name: Find latest RHEL 9 hourly AMI when AMI not supplied
+  when: tf_ami_id | default('') | trim | length == 0
+  block:
+    - name: Query RHEL 9 AMI
+      amazon.aws.ec2_ami_info:
+        region: "{{ tf_aws_region }}"
+        owners:
+          - "309956199498"
+        filters:
+          name: "RHEL-9*HVM-*Hourly*"
+          architecture: x86_64
+      register: _tf_rhel_amis
+
+    - name: Set AMI ID from query
+      ansible.builtin.set_fact:
+        tf_ami_id: >-
+          {{
+            (_tf_rhel_amis.images | sort(attribute='creation_date'))[-1].image_id
+          }}
+
+- name: Prepare Terraform working directory
+  ansible.builtin.file:
+    path: "{{ tf_working_dir }}"
+    state: directory
+    mode: "0755"
+
+- name: Copy shared Terraform configuration
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/aws_rhel_vm/"
+    dest: "{{ tf_working_dir }}/"
+    mode: "0644"
+    directory_mode: "0755"
+
+- name: Template Terraform backend configuration
+  ansible.builtin.template:
+    src: "{{ tf_backend_template }}"
+    dest: "{{ tf_working_dir }}/backend.tf"
+    mode: "0644"
+
+- name: Template Terraform variable values
+  ansible.builtin.template:
+    src: templates/terraform.tfvars.j2
+    dest: "{{ tf_working_dir }}/terraform.tfvars"
+    mode: "0644"

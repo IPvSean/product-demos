@@ -22,6 +22,14 @@ This category covers automated provisioning and lifecycle management of IT infra
 | **ROSA ǀ Wait for Ready** | Polls cluster status until ready (~30-40 min), then creates cluster-admin credentials |
 | **ROSA ǀ Destroy Cluster** | Destroys the cluster, STS operator roles, and OIDC provider; safe to run if cluster is already gone |
 
+### Terraform Enterprise on AWS
+
+#### Jobs
+
+| Job Template | Description |
+|--------------|-------------|
+| [**Infrastructure | Terraform Enterprise — Deploy on AWS**](docs/terraform-enterprise-deploy-aws.md) | Single-node TFE on RHEL EC2 (Podman, disk mode, BYO license) |
+
 ### HashiCorp Vault
 
 #### Jobs

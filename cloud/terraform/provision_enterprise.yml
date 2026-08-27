@@ -1,0 +1,55 @@
+---
+- name: Provision RHEL EC2 via Terraform Enterprise
+  hosts: localhost
+  gather_facts: false
+  vars:
+    tf_working_dir: "/tmp/apd-terraform-{{ tf_name_tag | default('tf_rhel9') }}"
+    tf_backend_template: templates/backend_enterprise.tf.j2
+    tf_aws_region: "{{ tf_aws_region | default('us-east-2') }}"
+    tf_name_tag: "{{ tf_name_tag | default('tf_rhel9') }}"
+    tf_instance_type: "{{ tf_instance_type | default('t3.micro') }}"
+    tf_instance_count: "{{ tf_instance_count | default(1) | int }}"
+    tf_owner: "{{ tf_owner | default('apd-demo') }}"
+    tf_blueprint: "{{ tf_blueprint | default('rhel9') }}"
+    tf_deployment: "{{ tf_deployment | default('terraform') }}"
+    tf_purpose: "{{ tf_purpose | default('demo') }}"
+    tf_validate_certs: false
+
+  tasks:
+    - name: Validate TFE connection variables
+      ansible.builtin.assert:
+        that:
+          - tf_hostname | default('') | length > 0
+          - tf_org | default('') | length > 0
+          - tf_workspace | default('') | length > 0
+          - tf_token | default('') | length > 0
+        fail_msg: >-
+          Terraform Enterprise credential must supply tf_hostname, tf_org,
+          tf_workspace, and tf_token.
+
+    - name: Stage Terraform workspace
+      ansible.builtin.include_tasks: tasks/stage_terraform_workspace.yml
+
+    - name: Upload configuration to Terraform Enterprise
+      hashicorp.terraform.configuration_version:
+        tf_hostname: "{{ tf_hostname }}"
+        tf_validate_certs: "{{ tf_validate_certs }}"
+        tf_token: "{{ tf_token }}"
+        organization: "{{ tf_org }}"
+        workspace: "{{ tf_workspace }}"
+        auto_queue_runs: false
+        state: present
+        configuration_files_path: "{{ tf_working_dir }}"
+
+    - name: Create and apply Terraform Enterprise run
+      hashicorp.terraform.run:
+        tf_hostname: "{{ tf_hostname }}"
+        tf_validate_certs: "{{ tf_validate_certs }}"
+        tf_token: "{{ tf_token }}"
+        organization: "{{ tf_org }}"
+        workspace: "{{ tf_workspace }}"
+        run_message: "APD demo provision from Ansible Automation Platform"
+        auto_apply: true
+        poll_interval: 5
+        poll_timeout: 360
+        state: present
