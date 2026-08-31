@@ -10,6 +10,7 @@ Each file in this folder documents a corresponding cloud demo playbook or workfl
 | AWS — Create VPC | [cloud-create-vpc.md](cloud-create-vpc.md) | [`cloud/create_vpc.yml`](../create_vpc.yml) |
 | AWS — Create Keypair | [cloud-create-keypair.md](cloud-create-keypair.md) | [`cloud/aws_key.yml`](../aws_key.yml) |
 | AWS — Create VM | [cloud-create-vm.md](cloud-create-vm.md) | [`cloud/create_vm.yml`](../create_vm.yml) |
+| AWS — RHEL 9 Simple | [rhel9-simple.md](rhel9-simple.md) | [`cloud/rhel9_simple.yml`](../rhel9_simple.yml) |
 | AWS — Delete VM | [cloud-delete-vm.md](cloud-delete-vm.md) | [`cloud/delete_vm_by_name.yml`](../delete_vm_by_name.yml) |
 | AWS — Resize EC2 | [cloud-resize-ec2.md](cloud-resize-ec2.md) | [`cloud/resize_ec2.yml`](../resize_ec2.yml) |
 | AWS — Snapshot EC2 | [cloud-snapshot-ec2.md](cloud-snapshot-ec2.md) | [`cloud/snapshot_ec2.yml`](../snapshot_ec2.yml) |

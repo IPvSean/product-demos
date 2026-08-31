@@ -228,6 +228,26 @@
     playbooks: 1
   github_path: cloud/create_vm.yml
 
+- slug: cloud-rhel9-simple
+  readme_path: cloud/docs/rhel9-simple.md
+  url: /demos/cloud-rhel9-simple/
+  title: "AWS — RHEL 9 Simple"
+  subtitle: "One task — provision a tagged RHEL 9 VM"
+  category: cloud
+  status: active
+  tags:
+    - Playbook
+    - Survey
+    - AWS
+    - RHEL
+  thumbnail:
+    gradient: "linear-gradient(135deg, #cc0000 0%, #7a0000 100%)"
+    icon: "🐧"
+  blurb: "The smallest cloud demo — one task provisions aws_rhel9 with full APD tags, assuming VPC and networking already exist."
+  stats:
+    playbooks: 1
+  github_path: cloud/rhel9_simple.yml
+
 - slug: cloud-delete-vm
   readme_path: cloud/docs/cloud-delete-vm.md
   url: /demos/cloud-delete-vm/

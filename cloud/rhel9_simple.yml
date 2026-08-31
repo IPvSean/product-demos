@@ -1,0 +1,25 @@
+---
+# Assumes VPC, subnet, security group, and keypair already exist
+# (for example, from Deploy Cloud Stack in AWS).
+- name: RHEL 9 Simple
+  hosts: localhost
+  connection: local
+  gather_facts: false
+  vars_files:
+    - blueprints/rhel9.yml
+  vars:
+    create_vm_vm_name: aws_rhel9
+    create_vm_vm_blueprint: rhel9
+    create_vm_aws_keypair_name: aws-test-key
+    create_vm_aws_securitygroup_name: aws-test-sg
+    create_vm_aws_vpc_subnet_name: aws-test-subnet
+    create_vm_vm_deployment: cloud_stack
+    create_vm_vm_environment: "{{ vm_environment | default('Prod') }}"
+    create_vm_vm_owner: "{{ create_vm_aws_owner_tag | default('your_name') }}"
+    create_vm_apd_managed_by: aap-product-demos
+    create_vm_apd_demo_tag: "true"
+  tasks:
+    - name: Provision RHEL 9 EC2 instance with APD tags
+      ansible.builtin.include_role:
+        name: demo.cloud.aws
+        tasks_from: create_vm
