@@ -22,20 +22,42 @@
       ignore_public_acls: false
       restrict_public_buckets: false
 
+- name: Get report bucket location
+  amazon.aws.s3_bucket_info:
+    name: "{{ reports_aws_bucket_name }}"
+    bucket_facts:
+      bucket_location: true
+    transform_location: true
+  register: reports_aws_bucket_info
+
+- name: Set report bucket region from AWS
+  ansible.builtin.set_fact:
+    reports_aws_bucket_region: "{{ reports_aws_bucket_info.buckets[0].bucket_location.LocationConstraint | default(reports_aws_region) }}"
+
+- name: Warn when report bucket region differs from requested region
+  ansible.builtin.debug:
+    msg: >-
+      Report bucket {{ reports_aws_bucket_name }} exists in {{ reports_aws_bucket_region }},
+      not the requested {{ reports_aws_region }}. Using the bucket's region for S3
+      operations and website URL.
+  when: reports_aws_bucket_region != reports_aws_region
+
 - name: Configure bucket for website
   community.aws.s3_website:
     name: "{{ reports_aws_bucket_name }}"
     state: present
+    region: "{{ reports_aws_bucket_region }}"
 
 - name: Put website files
   community.aws.s3_sync:
     bucket: "{{ reports_aws_bucket_name }}"
     file_root: "{{ playbook_dir }}/files"
-    region: "{{ reports_aws_region }}"
+    region: "{{ reports_aws_bucket_region }}"
 
 - name: Get bucket objects
   amazon.aws.s3_object_info:
     bucket_name: "{{ reports_aws_bucket_name }}"
+    region: "{{ reports_aws_bucket_region }}"
   register: bucket_objects
 
 - name: Put index.html
@@ -45,10 +67,11 @@
     src: "{{ playbook_dir }}/index.html"
     mode: put
     overwrite: always
+    region: "{{ reports_aws_bucket_region }}"
     headers:
       ContentType: "text/html; charset=utf-8"
       ContentDisposition: inline
 
 - name: Print bucket URL
   ansible.builtin.debug:
-    msg: "Bucket URL: http://{{ reports_aws_bucket_name }}.s3-website-{{ reports_aws_region }}.amazonaws.com"
+    msg: "Bucket URL: http://{{ reports_aws_bucket_name }}.s3-website-{{ reports_aws_bucket_region }}.amazonaws.com"

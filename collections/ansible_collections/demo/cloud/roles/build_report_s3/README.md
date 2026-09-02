@@ -17,7 +17,7 @@ Repo playbook: [`cloud/cloud_report.yml`](../../../../../../cloud/cloud_report.y
 
 - ansible-core >= 2.16.0
 - Target: `localhost`
-- `amazon.aws` collection (`aws_caller_info`, `s3_bucket`, `s3_object`, `s3_object_info`)
+- `amazon.aws` collection (`aws_caller_info`, `s3_bucket`, `s3_bucket_info`, `s3_object`, `s3_object_info`)
 - `community.aws` collection (`s3_website`, `s3_sync`)
 - AWS credentials with permission to create/configure S3 buckets and objects
 
@@ -28,7 +28,8 @@ Defaults live in `defaults/main.yml`.
 | Variable | Default | Description |
 | --- | --- | --- |
 | `reports_aws_bucket_name` | `reports-pd-<AWS account ID>` (resolved at runtime) | S3 bucket created/configured as a static website |
-| `reports_aws_region` | `us-east-1` | AWS region for the bucket |
+| `reports_aws_region` | `us-east-1` | Requested AWS region when creating a new bucket |
+| `reports_aws_bucket_region` | _(set at runtime)_ | Actual bucket region from `s3_bucket_info`; used for sync, uploads, and the printed website URL |
 
 ## Entry points
 
