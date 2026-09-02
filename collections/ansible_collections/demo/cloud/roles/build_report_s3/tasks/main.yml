@@ -61,14 +61,6 @@
       ContentType: "text/html; charset=utf-8"
       ContentDisposition: inline
 
-- name: Set report bucket website hostname
-  ansible.builtin.set_fact:
-    reports_aws_bucket_website_hostname: "{{ reports_aws_bucket_name }}.s3-website-{{ reports_aws_bucket_region }}.amazonaws.com"
-
-- name: Resolve report bucket website hostname to IP
-  ansible.builtin.set_fact:
-    reports_aws_bucket_website_ip: "{{ lookup('community.general.dig', reports_aws_bucket_website_hostname) }}"
-
-- name: Print bucket website IP
+- name: Print bucket URL
   ansible.builtin.debug:
-    msg: "Report available at http://{{ reports_aws_bucket_website_ip | trim }}/"
+    msg: "Bucket URL: http://{{ reports_aws_bucket_name }}.s3-website-{{ reports_aws_bucket_region }}.amazonaws.com"
