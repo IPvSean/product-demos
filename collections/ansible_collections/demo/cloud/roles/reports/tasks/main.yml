@@ -8,16 +8,38 @@
     public_access: "{{ reports_aws_public_access }}"
     object_ownership: BucketOwnerPreferred
 
+- name: Get report bucket location
+  amazon.aws.s3_bucket_info:
+    name: "{{ reports_aws_bucket_name }}"
+    bucket_facts:
+      bucket_location: true
+    transform_location: true
+  register: reports_aws_bucket_info
+
+- name: Set report bucket region from AWS
+  ansible.builtin.set_fact:
+    reports_aws_bucket_region: "{{ reports_aws_bucket_info.buckets[0].bucket_location.LocationConstraint | default(reports_aws_region) }}"
+
+- name: Warn when report bucket region differs from requested region
+  ansible.builtin.debug:
+    msg: >-
+      Report bucket {{ reports_aws_bucket_name }} exists in {{ reports_aws_bucket_region }},
+      not the requested {{ reports_aws_region }}. Using the bucket's region for S3
+      operations and website URL.
+  when: reports_aws_bucket_region != reports_aws_region
+
 - name: Configure bucket for website
   community.aws.s3_website:
     name: "{{ reports_aws_bucket_name }}"
     state: present
+    region: "{{ reports_aws_bucket_region }}"
 
 - name: Put website files
   community.aws.s3_sync:
     bucket: "{{ reports_aws_bucket_name }}"
     file_root: "{{ role_path }}/files"
     permission: "{{ reports_aws_bucket_permissions }}"
+    region: "{{ reports_aws_bucket_region }}"
 
 - name: Include tasks
   ansible.builtin.include_tasks: "{{ reports_aws_report }}.yml"
@@ -25,6 +47,7 @@
 - name: Get bucket objects
   amazon.aws.s3_object_info:
     bucket_name: "{{ reports_aws_bucket_name }}"
+    region: "{{ reports_aws_bucket_region }}"
   register: bucket_objects
 
 - name: Template landing page to staging file
@@ -41,10 +64,11 @@
     mode: put
     permission: "{{ reports_aws_bucket_permissions }}"
     overwrite: always
+    region: "{{ reports_aws_bucket_region }}"
     headers:
       ContentType: "text/html; charset=utf-8"
       ContentDisposition: inline
 
 - name: Print bucket url
   ansible.builtin.debug:
-    msg: "Bucket URL: http://{{ reports_aws_bucket_name }}.s3-website.{{ reports_aws_region }}.amazonaws.com"
+    msg: "Bucket URL: http://{{ reports_aws_bucket_name }}.s3-website-{{ reports_aws_bucket_region }}.amazonaws.com"

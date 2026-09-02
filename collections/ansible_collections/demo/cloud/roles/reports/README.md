@@ -16,7 +16,7 @@ This role is not currently referenced by any repo playbook or job template. The 
 
 - ansible-core >= 2.16.0
 - Target: `localhost`
-- `amazon.aws` collection (`s3_bucket`, `s3_object`, `s3_object_info`, `ec2_vpc_net_info`, `ec2_instance_info`, `ec2_vpc_igw_info`, `aws_caller_info`)
+- `amazon.aws` collection (`s3_bucket`, `s3_bucket_info`, `s3_object`, `s3_object_info`, `ec2_vpc_net_info`, `ec2_instance_info`, `ec2_vpc_igw_info`, `aws_caller_info`)
 - `community.aws` collection (`s3_website`, `s3_sync`)
 - AWS credentials with permission to create/configure S3 buckets and read VPC/EC2/IGW info
 
@@ -26,7 +26,8 @@ Defaults live in `defaults/main.yml`.
 
 | Variable | Default | Description |
 | --- | --- | --- |
-| `reports_aws_region` | `us-east-1` | Region for the S3 bucket and the AWS info lookups used by `vpc.yml` |
+| `reports_aws_region` | `us-east-1` | Requested region for a new S3 bucket and the AWS info lookups used by `vpc.yml` |
+| `reports_aws_bucket_region` | _(set at runtime)_ | Actual bucket region from `s3_bucket_info`; used for sync, uploads, and the printed website URL |
 | `reports_aws_staging_dir` | `{{ playbook_dir \| default('/tmp') }}` | Local directory where rendered HTML is staged before upload |
 | `reports_aws_bucket_prefix` | first 4 chars of `AWS_ACCESS_KEY_ID` (lowercased) | Used to derive a unique bucket name |
 | `reports_aws_bucket_name` | `{{ reports_aws_bucket_prefix }}-reports` | S3 bucket created/configured as a static website |
