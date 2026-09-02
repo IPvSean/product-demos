@@ -10,17 +10,29 @@
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <script>
 $(function() {
-$( "#accordion > div" ).accordion({
+  $("#ansible-accordion > div").accordion({
     header: "h3",
-    // active: false,
-    active: 0,  // Set this to the index of the panel you want expanded by default (0 for the first panel)
-collapsible: true
-});
+    active: false,
+    collapsible: true
+  });
+  $("#region-accordion > div").accordion({
+    header: "h3",
+    active: false,
+    collapsible: true
+  });
 });
 </script>
 </head>
 <body>
   {% include 'header.j2' %}
+<center><p>Created with</p><br><img src="webpage_logo.png" width="300" alt="red hat ansible automation platform logo">
+<p>The source code to create this report can be found at <a href="https://github.com/ansible/product-demos">https://github.com/ansible/product-demos</a><br><br>
+If you are new to Ansible Automation check out the following links:<br>
+<a href="https://docs.ansible.com/ansible/latest/user_guide/intro_getting_started.html">Getting Started</a><br>
+<a target="_blank" href="https://ansible.com/workshops">Free hands-on workshops</a><br>
+<a href="https://youtube.com/ansibleautomation">Youtube Videos</a><br>
+</p>
+</center>
 <section>
 <center>
 <h1>Ansible Hybrid Cloud Automation Example Report</h1>
@@ -36,8 +48,7 @@ collapsible: true
         <tr>
             <td class="summary_info">
               <div id="hostname">
-              <img class="router_image" src="aws.png" alt="picture of cloud">
-              <br><p class="hostname">AWS</p>
+              <p class="hostname">AWS</p>
             </div>
               <div id="net_info_div">
               <table class="net_info">
@@ -76,14 +87,6 @@ collapsible: true
 
     </tbody>
 </table>
-<center><p>Created with</p><br><img src="webpage_logo.png" width="300" alt="red hat ansible automation platform logo">
-<p>The source code to create this report can be found at <a href="https://github.com/ansible/product-demos">https://github.com/ansible/product-demos</a><br><br>
-If you are new to Ansible Automation check out the following links:<br>
-<a href="https://docs.ansible.com/ansible/latest/user_guide/intro_getting_started.html">Getting Started</a><br>
-<a target="_blank" href="https://ansible.com/workshops">Free hands-on workshops</a><br>
-<a href="https://youtube.com/ansibleautomation">Youtube Videos</a><br>
-</p>
-</center>
 </section>
 </div>
 </body>

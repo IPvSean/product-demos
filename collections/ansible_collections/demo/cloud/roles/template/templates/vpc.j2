@@ -1,5 +1,5 @@
 <!-- INTERNAL TABLE FOR Ansible -->
-<div id="accordion">
+<div id="region-accordion">
 {% for ec2_region in all_ec2_regions %}
 {% for key, value in ec2_region.items() %}
 {% set running = value.ec2_instance_info.instances | selectattr('state.name', 'equalto', "running") | length %}
