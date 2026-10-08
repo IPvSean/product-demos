@@ -24,6 +24,8 @@ Description ALWAYS comes first. Workflow and Video come between the description 
 
 The layout renders Workflow and Video as separate `<section>` elements after `{{ content }}`. JavaScript in `demo-toc.js` moves them into `.detail-body` between the lead paragraph and the first `<h2>` heading.
 
+`demo-toc.js` may fold only **orphan** `ol`/`ul` that sit **before** the first markdown `h2` into Workflow. Do not move Path / Presenter step lists out from under their headings (e.g. AO Hub Path 1).
+
 Source READMEs may still include `## Related demos` for GitHub browsing; the Pages build removes them and injects the category CTA instead.
 
 When writing new demo markdown files in `<section>/docs/`, follow this heading order.

@@ -1,0 +1,37 @@
+---
+description: AO Install/seed + Mattermost provision patterns from product-demos #369
+globs: infrastructure/ao/**,infrastructure/mattermost/**,infrastructure/docs/automation-orchestrator.md,infrastructure/docs/mattermost.md,infrastructure/setup.yml
+alwaysApply: false
+---
+
+# Automation Orchestrator + Mattermost
+
+## Hub docs (Path 1 / Path 2)
+
+- **Path 1** = Install + login only (quick AO).
+- **Path 2** = self-contained numbered steps (Cloud Stack → Mattermost → Install → login → open workflow). Do **not** say “go back to Path 1.”
+- Soft-warn missing `aws_rhel9` / Mattermost at Install; do **not** fail seed when deps are absent.
+- Skip placeholder “future demo” rows until a seeded demo actually needs them.
+
+## Seed summary (`seed.yml`)
+
+- Reprint AO **Username** / **Password** at the end (decode the admin secret at display time — `no_log` on `ao_admin_password` can redact debug output).
+- Prefer Mattermost endpoint from the Controller **Mattermost** credential (`mattermost_server`); inventory `aws_mattermost` is fallback only (IPs go stale).
+- When Mattermost is present, also print default UI login `apdadmin` / `Ansible123!`.
+
+## Mattermost provision
+
+- `community.general.mattermost` needs an **incoming webhook id** as `api_key` / `api_chat_token` — **not** a bot PAT.
+- Each Provision run: delete prior `APD Notify Chatroom` hooks → create new (expect 201) → **overwrite** the Controller credential. Keep AAP token in sync with Mattermost.
+- Mattermost HTTP **400** bodies use `json.id` for an **error code** (e.g. `*.app_error`). Only trust `json.id` as a resource id on **201**; on 400, look up by name.
+- Prefer Controller `uri` for credential/inventory sync when `ansible.controller.*` trips lint/EE (same pattern as credential publish).
+
+## Uninstall → Install
+
+- `aapctl uninstall` only *requests* removal. Wait until CRs/PVCs are gone, delete leftover `automation-orchestrator` namespace, assert **NotFound** before calling Install clean.
+- Empty `Active` namespace after uninstall is not success — delete it.
+- Migration `database "orchestrator" does not exist` after a half-clean reinstall is an AO bootstrap issue; fix by full ns/PVC removal, not longer Route waits.
+
+## Pages / TOC
+
+- Path step lists live under their `h2`. `demo-toc.js` may only fold **orphan** `ol`/`ul` **before** the first markdown `h2` into Workflow — never restore “steal all lists until Configure credentials.”
