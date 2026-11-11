@@ -67,7 +67,8 @@ Owner and environment are fixed in workflow extra vars (`apd` / `Prod`) so labs 
 | Demo | Description |
 |------|-------------|
 | [AWS Mattermost](./mattermost.md) | Standalone Mattermost provision |
-| [AWS Gitea](./gitea.md) | Standalone Gitea provision |
+| [AWS Gitea](./gitea.md) | Standalone Gitea provision on EC2 |
+| [OpenShift Gitea](./gitea-openshift.md) | Same forge on lab OpenShift when AWS is not available |
 | [OpenFlake](./openflake.md) | Standalone OpenFlake install / uninstall |
 | [Deploy Cloud Stack in AWS](../../cloud/docs/deploy-cloud-stack.md) | Full stack including demo VMs |
 | [Automation Orchestrator](./automation-orchestrator.md) | Path 2 step 2 — Shared Services before AO Install |

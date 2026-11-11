@@ -1959,6 +1959,25 @@
   url: /demos/infrastructure-gitea/
   github_path: infrastructure/setup.yml
 
+- slug: infrastructure-gitea-openshift
+  readme_path: infrastructure/docs/gitea-openshift.md
+  title: "Infrastructure | OpenShift — Provision Gitea"
+  subtitle: "Same lab Git forge, running on OpenShift instead of EC2"
+  category: infrastructure
+  status: active
+  tags:
+    - OpenShift
+    - Git
+    - SCM
+  thumbnail:
+    gradient: "linear-gradient(135deg, #231f20 0%, #1f6feb 100%)"
+    icon: "📦"
+  blurb: "Deploy Gitea with the RHDP operator, seed inventory-service, and print the same apdadmin / Ansible123! login. No AWS account required."
+  stats:
+    playbooks: 1
+  url: /demos/infrastructure-gitea-openshift/
+  github_path: infrastructure/setup.yml
+
 - slug: openflake
   readme_path: infrastructure/docs/openflake.md
   title: "Infrastructure | OpenFlake"

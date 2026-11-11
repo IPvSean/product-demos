@@ -1,0 +1,28 @@
+---
+# OpenShift stand-in for the systemd dev (:8080) and prod (:80) apps on aws_gitea.
+# CI/CD deploy / rollback job templates still SSH to aws_gitea; these Routes are
+# the baseline apps a presenter can open when the lab has no EC2 host.
+- name: Create the inventory-service runtime ConfigMap
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: inventory-service-runtime
+        namespace: "{{ _gitea_namespace }}"
+        labels:
+          app.kubernetes.io/part-of: apd-gitea
+      data:
+        app.py: "{{ lookup('file', playbook_dir ~ '/files/inventory-service/runtime_server.py') }}"
+        version.txt: "2.3.0-b40\n"
+
+- name: Deploy inventory-service dev and prod
+  ansible.builtin.include_tasks: openshift_demo_app.yml
+  loop:
+    - name: inventory-service-dev
+      env: dev
+    - name: inventory-service-prod
+      env: prod
+  loop_control:
+    loop_var: gitea_demo_app

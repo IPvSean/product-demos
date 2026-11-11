@@ -3,10 +3,11 @@
 - name: Look up inventory-service seed file {{ gitea_seed_file.path }}
   ansible.builtin.uri:
     url: >-
-      http://127.0.0.1:{{ gitea_http_port }}/api/v1/repos/{{ gitea_repo_owner }}/{{ gitea_repo_name }}/contents/{{ gitea_seed_file.path }}?ref=main
+      {{ gitea_api_root }}/api/v1/repos/{{ gitea_repo_owner }}/{{ gitea_repo_name }}/contents/{{ gitea_seed_file.path }}?ref=main
     method: GET
     headers:
       Authorization: "token {{ gitea_api_token }}"
+    validate_certs: "{{ gitea_api_validate_certs | default(true) | bool }}"
     status_code: [200, 404]
   register: gitea_seed_lookup
   no_log: true
@@ -14,11 +15,12 @@
 - name: Write inventory-service seed file {{ gitea_seed_file.path }}
   ansible.builtin.uri:
     url: >-
-      http://127.0.0.1:{{ gitea_http_port }}/api/v1/repos/{{ gitea_repo_owner }}/{{ gitea_repo_name }}/contents/{{ gitea_seed_file.path }}
+      {{ gitea_api_root }}/api/v1/repos/{{ gitea_repo_owner }}/{{ gitea_repo_name }}/contents/{{ gitea_seed_file.path }}
     method: "{{ 'PUT' if gitea_seed_lookup.status == 200 else 'POST' }}"
     headers:
       Authorization: "token {{ gitea_api_token }}"
       Content-Type: application/json
+    validate_certs: "{{ gitea_api_validate_certs | default(true) | bool }}"
     body_format: json
     body: >-
       {{

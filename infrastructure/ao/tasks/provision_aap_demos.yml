@@ -208,6 +208,12 @@
     ao_gitea_present: true
     ao_gitea_host: "{{ ao_gitea_cred_lookup.json.results[0].inputs.gitea_host }}"
     ao_gitea_port: "{{ ao_gitea_cred_lookup.json.results[0].inputs.gitea_port | default('3000') }}"
+    ao_gitea_scheme: >-
+      {{
+        'https'
+        if ((ao_gitea_cred_lookup.json.results[0].inputs.gitea_port | default('3000') | string) == '443')
+        else 'http'
+      }}
     ao_gitea_owner: >-
       {{ ao_gitea_cred_lookup.json.results[0].inputs.gitea_owner | default('apdadmin') }}
     ao_gitea_repo: >-

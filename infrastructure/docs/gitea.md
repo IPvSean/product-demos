@@ -2,6 +2,8 @@
 
 Stand up a lightweight self-hosted Git forge on AWS for demos that need SCM without GitHub.com — including the AO **CI/CD Pipeline** demo (`inventory-service` + Gitea Actions).
 
+The same forge can run on lab OpenShift with no AWS account. Use **Infrastructure ǀ OpenShift - Provision Gitea** ([OpenShift Gitea](./gitea-openshift.md)). Both jobs write the Controller credential named **Gitea**; the last one to succeed is the forge later jobs use.
+
 ## Prerequisites
 
 - Shared AWS networking in the target region (defaults: `aws-test-subnet`, `aws-test-sg`, `aws-test-key`). Prefer:
@@ -64,6 +66,7 @@ Default admin login is `apdadmin` / `Ansible123!` (same as Mattermost; username 
 
 | Demo | Description |
 |------|-------------|
+| [OpenShift Gitea](./gitea-openshift.md) | Same admin, repo, and Controller credential on lab OpenShift |
 | [Automation Orchestrator](./automation-orchestrator.md) | Path 2 — CI/CD Pipeline seed attaches the **Gitea** credential |
 | [AWS Deploy Shared Services](./shared-services.md) | Preferred one-click path (VPC + keypair + Mattermost + Gitea) |
 | [AWS — Create VPC](../../cloud/docs/cloud-create-vpc.md) | Minimal networking prerequisite (no full cloud stack) |

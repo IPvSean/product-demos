@@ -54,7 +54,19 @@
     loop_var: __ao_trigger_src
   vars:
     __ao_cicd_build_url: >-
-      http://{{ ao_gitea_host }}:{{ ao_gitea_port | default('3000') }}/{{ ao_gitea_owner | default('apdadmin') }}/{{ ao_gitea_repo | default('inventory-service') }}/actions/runs/33
+      {{
+        (
+          ao_gitea_scheme
+          | default(
+              'https' if ((ao_gitea_port | default('3000') | string) == '443') else 'http',
+              true
+            )
+        )
+        ~ '://' ~ ao_gitea_host ~ ':' ~ (ao_gitea_port | default('3000'))
+        ~ '/' ~ (ao_gitea_owner | default('apdadmin'))
+        ~ '/' ~ (ao_gitea_repo | default('inventory-service'))
+        ~ '/actions/runs/33'
+      }}
     __ao_is_cicd_webhook: >-
       {{
         (__ao_trigger_src.type | default('')) == 'webhook_trigger'

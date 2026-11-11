@@ -1,0 +1,343 @@
+---
+# Gitea custom resource plus an app.ini we own so Actions stays enabled.
+# The operator's generated app.ini does not expose [actions].
+- name: Build Gitea project labels
+  ansible.builtin.set_fact:
+    gitea_namespace_labels:
+      app.kubernetes.io/part-of: apd-gitea
+      app.kubernetes.io/managed-by: ansible
+
+- name: Allow a privileged Actions runner in this project
+  when: _gitea_deploy_runner | bool
+  ansible.builtin.set_fact:
+    gitea_namespace_labels: "{{ _gitea_namespace_labels_base | combine(_gitea_runner_labels) }}"
+  vars:
+    _gitea_namespace_labels_base: "{{ gitea_namespace_labels }}"
+    _gitea_runner_labels:
+      pod-security.kubernetes.io/enforce: privileged
+      pod-security.kubernetes.io/audit: privileged
+      pod-security.kubernetes.io/warn: privileged
+      security.openshift.io/scc.podSecurityLabelSync: "false"
+
+- name: Create the Gitea project
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ _gitea_namespace }}"
+        labels: "{{ gitea_namespace_labels }}"
+
+- name: Read the cluster apps domain
+  when: (gitea_route_host | default('', true) | trim | length) == 0
+  kubernetes.core.k8s_info:
+    api_version: config.openshift.io/v1
+    kind: Ingress
+    name: cluster
+  register: gitea_ingress
+
+- name: Require the cluster apps domain
+  when: (gitea_route_host | default('', true) | trim | length) == 0
+  ansible.builtin.assert:
+    that:
+      - gitea_ingress.resources | default([]) | length > 0
+      - (gitea_ingress.resources[0].spec.domain | default('') | length) > 0
+    fail_msg: >-
+      Could not read spec.domain from Ingress.config.openshift.io/cluster.
+      Pass gitea_route_host, a hostname on the cluster apps domain.
+
+- name: Set the Gitea route hostname
+  ansible.builtin.set_fact:
+    gitea_openshift_route_host: "{{ _gitea_resolved_route_host | trim }}"
+    gitea_pg_service: "postgresql-{{ gitea_cr_name }}"
+  vars:
+    _gitea_resolved_route_host: >-
+      {{
+        (gitea_route_host | trim)
+        if ((gitea_route_host | default('', true) | trim | length) > 0)
+        else (
+          gitea_cr_name ~ '-' ~ _gitea_namespace ~ '.'
+          ~ (gitea_ingress.resources[0].spec.domain | trim)
+        )
+      }}
+
+- name: Validate the Gitea route hostname
+  ansible.builtin.assert:
+    that:
+      - gitea_openshift_route_host is match('^[a-z0-9][a-z0-9.-]{1,251}[a-z0-9]$')
+      - "'.' in gitea_openshift_route_host"
+    fail_msg: >-
+      Gitea route hostname '{{ gitea_openshift_route_host }}' is not a DNS name.
+      Leave Route hostname blank to use <name>-<namespace>.<apps-domain>,
+      or pass a hostname the cluster router will admit.
+
+- name: Show the Gitea route this job will use
+  ansible.builtin.debug:
+    msg: "Gitea route: https://{{ gitea_openshift_route_host }}/"
+
+- name: Render Gitea app.ini with Actions enabled
+  ansible.builtin.set_fact:
+    gitea_app_ini: |
+      APP_NAME = {{ gitea_cr_name }}
+      RUN_MODE = prod
+      RUN_USER = gitea
+
+      [cors]
+      ENABLED = true
+      ALLOW_DOMAIN = *
+      ALLOW_SUBDOMAIN = false
+      METHODS = GET,HEAD,POST,PUT,PATCH,DELETE,OPTIONS
+      MAX_AGE = 10m
+      ALLOW_CREDENTIALS = false
+
+      [security]
+      INTERNAL_TOKEN = ${GITEA_INTERNAL_TOKEN}
+      INSTALL_LOCK = true
+      SECRET_KEY = ${GITEA_SECRET_KEY}
+      PASSWORD_COMPLEXITY = off
+
+      [oauth2]
+      ENABLED = false
+
+      [database]
+      DB_TYPE = postgres
+      HOST = {{ gitea_pg_service }}:5432
+      NAME = {{ gitea_pg_database }}
+      USER = {{ gitea_pg_user }}
+      PASSWD = {{ gitea_pg_password }}
+      SSL_MODE = disable
+
+      [repository]
+      ROOT = /gitea-data/repositories
+
+      [packages]
+      PATH = /gitea-data/packages
+
+      [server]
+      ROOT_URL = https://{{ gitea_openshift_route_host }}/
+      SSH_DOMAIN = {{ gitea_openshift_route_host }}
+      DOMAIN = {{ gitea_openshift_route_host }}
+      HTTP_PORT = 3000
+      SSH_PORT = 2022
+      DISABLE_SSH = true
+      START_SSH_SERVER = false
+      LFS_START_SERVER = false
+      OFFLINE_MODE = false
+
+      [service]
+      REGISTER_EMAIL_CONFIRM = false
+      ENABLE_NOTIFY_MAIL = false
+      DISABLE_REGISTRATION = true
+      ENABLE_CAPTCHA = false
+      REQUIRE_SIGNIN_VIEW = false
+      DEFAULT_KEEP_EMAIL_PRIVATE = false
+      DEFAULT_ALLOW_CREATE_ORGANIZATION = true
+      DEFAULT_ENABLE_TIMETRACKING = true
+      NO_REPLY_ADDRESS = noreply.example.org
+
+      [picture]
+      DISABLE_GRAVATAR = false
+      ENABLE_FEDERATED_AVATAR = true
+
+      [openid]
+      ENABLE_OPENID_SIGNIN = false
+      ENABLE_OPENID_SIGNUP = false
+
+      [webhook]
+      ALLOWED_HOST_LIST = external,private
+      SKIP_TLS_VERIFY = true
+
+      [session]
+      PROVIDER = file
+
+      [log]
+      MODE = file
+      LEVEL = Info
+      ROOT_PATH = /home/gitea/log
+
+      [actions]
+      ENABLED = true
+      DEFAULT_ACTIONS_URL = github
+
+- name: Create the Gitea admin password secret
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: "{{ gitea_admin_secret_name }}"
+        namespace: "{{ _gitea_namespace }}"
+        labels:
+          app.kubernetes.io/part-of: apd-gitea
+      stringData:
+        adminPassword: "{{ gitea_admin_password }}"
+  no_log: true
+
+- name: Create the Gitea app.ini ConfigMap
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: "{{ gitea_configmap_name }}"
+        namespace: "{{ _gitea_namespace }}"
+        labels:
+          app.kubernetes.io/part-of: apd-gitea
+      data:
+        app.ini: "{{ gitea_app_ini }}"
+
+- name: Check for an existing Gitea deployment
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: "{{ gitea_cr_name }}"
+    namespace: "{{ _gitea_namespace }}"
+  register: gitea_deploy_before
+
+- name: Create the Gitea custom resource
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: pfe.rhpds.com/v1
+      kind: Gitea
+      metadata:
+        name: "{{ gitea_cr_name }}"
+        namespace: "{{ _gitea_namespace }}"
+        labels:
+          app.kubernetes.io/part-of: apd-gitea
+      spec:
+        giteaSsl: true
+        giteaHostname: "{{ gitea_openshift_route_host }}"
+        giteaConfigMapName: "{{ gitea_configmap_name }}"
+        giteaImage: "{{ _gitea_image }}"
+        giteaImageTag: "{{ _gitea_image_tag }}"
+        giteaVolumeSize: 4Gi
+        postgresqlVolumeSize: 4Gi
+        postgresqlServiceName: "{{ gitea_pg_service }}"
+        postgresqlDatabaseName: "{{ gitea_pg_database }}"
+        postgresqlUser: "{{ gitea_pg_user }}"
+        postgresqlPassword: "{{ gitea_pg_password }}"
+        giteaPostgresqlServiceName: "{{ gitea_pg_service }}"
+        giteaPostgresqlDatabaseName: "{{ gitea_pg_database }}"
+        giteaPostgresqlUser: "{{ gitea_pg_user }}"
+        giteaPostgresqlPassword: "{{ gitea_pg_password }}"
+        giteaAdminUser: "{{ gitea_admin_username }}"
+        giteaAdminEmail: "{{ gitea_admin_email }}"
+        giteaAdminPasswordSecretName: "{{ gitea_admin_secret_name }}"
+        giteaAdminPasswordExpose: false
+        giteaDisableRegistration: true
+        giteaDisableSsh: true
+        giteaStartSshServer: false
+        giteaHttpPort: 3000
+        giteaWebhookAllowedHostList: external,private
+        giteaWebhookSkipTlsVerify: true
+
+- name: Wait for Gitea admin setup
+  kubernetes.core.k8s_info:
+    api_version: pfe.rhpds.com/v1
+    kind: Gitea
+    name: "{{ gitea_cr_name }}"
+    namespace: "{{ _gitea_namespace }}"
+  register: gitea_cr_info
+  until:
+    - gitea_cr_info.resources | default([]) | length > 0
+    - >-
+      (gitea_cr_info.resources[0].status.adminSetupComplete | default(false) | bool)
+      or ((gitea_cr_info.resources[0].status.adminSetupError | default('')) | length > 0)
+  retries: 60
+  delay: 15
+
+- name: Require Gitea admin setup to succeed
+  ansible.builtin.assert:
+    that:
+      - gitea_cr_info.resources[0].status.adminSetupComplete | default(false) | bool
+      - (gitea_cr_info.resources[0].status.giteaRoute | default('') | length) > 0
+      - >-
+        gitea_cr_info.resources[0].status.giteaHostname | default('')
+        == gitea_openshift_route_host
+    fail_msg: >-
+      Gitea operator did not finish admin setup
+      ({{ gitea_cr_info.resources[0].status.adminSetupError | default('no error recorded') }}).
+      Route status: {{ gitea_cr_info.resources[0].status.giteaRoute | default('n/a') }}
+      hostname: {{ gitea_cr_info.resources[0].status.giteaHostname | default('n/a') }}.
+      Expected hostname {{ gitea_openshift_route_host }}.
+
+- name: List Gitea pods before reloading app.ini
+  when: gitea_deploy_before.resources | default([]) | length > 0
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ _gitea_namespace }}"
+    label_selectors:
+      - app={{ gitea_cr_name }}
+  register: gitea_pods_before
+
+- name: Remember Gitea pod names from before the reload
+  when: gitea_deploy_before.resources | default([]) | length > 0
+  ansible.builtin.set_fact:
+    gitea_old_pod_names: "{{ gitea_pods_before.resources | default([]) | map(attribute='metadata.name') | list }}"
+
+- name: Reload Gitea so an updated app.ini is read
+  when: gitea_deploy_before.resources | default([]) | length > 0
+  kubernetes.core.k8s:
+    state: absent
+    api_version: v1
+    kind: Pod
+    namespace: "{{ _gitea_namespace }}"
+    label_selectors:
+      - app={{ gitea_cr_name }}
+
+- name: Wait for the replacement Gitea pod
+  when: gitea_deploy_before.resources | default([]) | length > 0
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ _gitea_namespace }}"
+    label_selectors:
+      - app={{ gitea_cr_name }}
+  register: gitea_pods_after
+  until:
+    - >-
+      (
+        gitea_pods_after.resources | default([])
+        | selectattr('status.phase', 'equalto', 'Running')
+        | rejectattr('metadata.name', 'in', gitea_old_pod_names)
+        | list
+        | length
+      ) >= 1
+  retries: 40
+  delay: 5
+
+- name: Wait for the Gitea deployment
+  kubernetes.core.k8s_info:
+    api_version: apps/v1
+    kind: Deployment
+    name: "{{ gitea_cr_name }}"
+    namespace: "{{ _gitea_namespace }}"
+  register: gitea_deploy
+  until:
+    - gitea_deploy.resources | default([]) | length > 0
+    - (gitea_deploy.resources[0].status.availableReplicas | default(0) | int) == 1
+  retries: 40
+  delay: 10
+
+- name: Wait for Gitea HTTPS
+  ansible.builtin.uri:
+    url: "https://{{ gitea_openshift_route_host }}/api/v1/version"
+    method: GET
+    validate_certs: false
+    status_code: [200]
+  register: gitea_https_ping
+  until: gitea_https_ping.status | default(0) == 200
+  retries: 30
+  delay: 5
+
+- name: Record the Gitea API endpoint for CI/CD bootstrap
+  ansible.builtin.set_fact:
+    gitea_api_host: "{{ gitea_openshift_route_host }}"
+    gitea_api_port: "443"
+    gitea_api_root: "https://{{ gitea_openshift_route_host }}"
+    gitea_api_validate_certs: false

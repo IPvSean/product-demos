@@ -1,0 +1,113 @@
+---
+# Same forge outcome as infrastructure/gitea/provision_gitea.yml, on the lab
+# OpenShift cluster instead of an EC2 host. Both jobs upsert the Controller
+# credential named Gitea; the last success is the one AO Install uses.
+- name: Provision Gitea on OpenShift
+  hosts: localhost
+  connection: local
+  gather_facts: false
+
+  vars:
+    gitea_admin_username: apdadmin
+    gitea_admin_password: Ansible123!
+    gitea_admin_email: apd-admin@example.com
+    gitea_http_port: 3000
+    gitea_cr_name: gitea
+    gitea_operator_namespace: gitea-operator
+    gitea_configmap_name: apd-gitea-config
+    gitea_admin_secret_name: gitea-admin-password
+    gitea_pg_database: giteadb
+    gitea_pg_user: giteauser
+    gitea_pg_password: giteapassword
+    gitea_credential_source: Infrastructure | OpenShift - Provision Gitea
+    _gitea_namespace: "{{ gitea_namespace | default('gitea') }}"
+    _gitea_image: "{{ gitea_image | default('quay.io/rhpds/gitea') }}"
+    _gitea_image_tag: "{{ gitea_image_tag | default('latest') }}"
+    _gitea_deploy_runner: "{{ gitea_deploy_runner | default(true) | bool }}"
+    _gitea_deploy_demo_apps: "{{ gitea_deploy_demo_apps | default(true) | bool }}"
+    _gitea_api_url: "{{ lookup('env', 'K8S_AUTH_HOST') | default('', true) }}"
+    _gitea_api_key: "{{ lookup('env', 'K8S_AUTH_API_KEY') | default('', true) }}"
+
+  tasks:
+    - name: Verify the OpenShift credential env vars are set
+      ansible.builtin.assert:
+        that:
+          - _gitea_api_url | length > 0
+          - _gitea_api_key | length > 0
+        fail_msg: >-
+          K8S_AUTH_HOST and K8S_AUTH_API_KEY must be set. Attach an
+          OpenShift or Kubernetes API Bearer Token credential to
+          Infrastructure | OpenShift - Provision Gitea.
+
+    - name: Validate the Gitea namespace
+      ansible.builtin.assert:
+        that:
+          - _gitea_namespace is match('^[a-z0-9]([-a-z0-9]{0,61}[a-z0-9])?$')
+          - _gitea_namespace != gitea_operator_namespace
+        fail_msg: >-
+          gitea_namespace ('{{ _gitea_namespace }}') must be a lowercase RFC 1123
+          label and must not be {{ gitea_operator_namespace }}.
+
+    - name: Install the RHDP Gitea operator
+      ansible.builtin.include_tasks: tasks/openshift_operator.yml
+
+    - name: Deploy the Gitea instance
+      ansible.builtin.include_tasks: tasks/openshift_instance.yml
+
+    - name: Seed Gitea and publish the Controller credential
+      block:
+        - name: Bootstrap the inventory-service repository
+          ansible.builtin.include_tasks: tasks/bootstrap_api.yml
+
+        - name: Persist CI/CD token facts for Controller publish
+          ansible.builtin.include_tasks: tasks/set_credential_facts.yml
+
+        - name: Upsert the Gitea Controller credential
+          ansible.builtin.include_tasks: tasks/publish_credential.yml
+
+        - name: Deploy inventory-service dev and prod Routes
+          when: _gitea_deploy_demo_apps | bool
+          ansible.builtin.include_tasks: tasks/openshift_demo_apps.yml
+
+        - name: Deploy the Gitea Actions runner
+          when: _gitea_deploy_runner | bool
+          ansible.builtin.include_tasks: tasks/openshift_runner.yml
+
+      always:
+        - name: Show Gitea access information
+          when: gitea_openshift_route_host is defined
+          ansible.builtin.debug:
+            msg:
+              - "============================================================"
+              - "Gitea login (copy from here)"
+              - "============================================================"
+              - "URL:      https://{{ gitea_openshift_route_host }}/"
+              - "Username: {{ gitea_admin_username }}"
+              - "Password: {{ gitea_admin_password }}"
+              - "Repo:     {{ gitea_admin_username }}/inventory-service"
+              - >-
+                Dev app:  {{ gitea_dev_app_url | default('not deployed') }}
+              - >-
+                Prod app: {{ gitea_prod_app_url | default('not deployed') }}
+              - >-
+                Actions runner: {{
+                  'registered (apd-demo-runner)'
+                  if (gitea_runner_ready | default(false) | bool)
+                  else (
+                    'skipped (gitea_deploy_runner=false)'
+                    if not (_gitea_deploy_runner | bool)
+                    else 'not registered — see the failed task above'
+                  )
+                }}
+              - >-
+                Controller credential '{{ 'Gitea' }}' {{
+                  'updated'
+                  if (hostvars['localhost'].gitea_credential_token is defined)
+                  else 'not updated — API bootstrap did not finish'
+                }}.
+                Port 443 means AO talks to this route over HTTPS.
+              - >-
+                One Gitea credential is shared with
+                Infrastructure | AWS - Provision Gitea. The job that succeeds
+                last is the forge AO Install uses.
+              - "============================================================"

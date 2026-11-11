@@ -123,7 +123,9 @@ controller_credential_types:
   - name: Gitea
     description: >-
       Gitea API endpoint for AO CI/CD Pipeline (Simulate Lightwell PR / Reset).
-      Filled by Infrastructure | AWS - Provision Gitea.
+      Filled by Infrastructure | AWS - Provision Gitea or
+      Infrastructure | OpenShift - Provision Gitea. Port 443 is an OpenShift
+      route (HTTPS). Any other port is HTTP, including 3000 on the AWS host.
     kind: cloud
     inputs:
       fields:
@@ -134,7 +136,7 @@ controller_credential_types:
         - id: gitea_port
           type: string
           label: Gitea HTTP port
-          help_text: Default 3000.
+          help_text: 3000 on the AWS host. 443 on an OpenShift route (HTTPS).
         - id: gitea_token
           type: string
           label: API token
@@ -207,7 +209,8 @@ controller_credentials:
     credential_type: Gitea
     organization: Ansible Product Demos (APD)
     description: >-
-      Updated automatically by Infrastructure | AWS - Provision Gitea.
+      Updated automatically by Infrastructure | AWS - Provision Gitea or
+      Infrastructure | OpenShift - Provision Gitea.
     update_secrets: false
     state: exists
     inputs:
@@ -922,6 +925,58 @@ controller_templates:
             - Dev
             - QA
             - Prod
+
+  - name: "Infrastructure | OpenShift - Provision Gitea"
+    description: >-
+      Deploys Gitea on OpenShift with the RHDP Gitea operator. Creates the
+      same apdadmin user, seeds inventory-service, enables Actions, starts an
+      act_runner, publishes dev and prod Routes, and upserts the Gitea
+      Controller credential. Use this when the lab has OpenShift and no AWS.
+      The AWS and OpenShift provision jobs write the same credential; the
+      last one to succeed is the forge AO Install uses.
+    labels:
+      - infrastructure
+      - openshift
+    job_type: run
+    organization: Ansible Product Demos (APD)
+    inventory: Ansible Product Demos Inventory
+    credentials:
+      - OpenShift Credential
+      - AAP Credential
+    project: Ansible Product Demos
+    playbook: infrastructure/gitea/provision_openshift.yml
+    notification_templates_started: Telemetry
+    notification_templates_success: Telemetry
+    notification_templates_error: Telemetry
+    survey_enabled: true
+    survey:
+      name: ''
+      description: ''
+      spec:
+        - question_name: Gitea namespace
+          question_description: >-
+            OpenShift project for this Gitea instance. Created if it does
+            not exist. The operator itself is installed in gitea-operator.
+          type: text
+          variable: gitea_namespace
+          required: true
+          default: gitea
+        - question_name: Route hostname
+          question_description: >-
+            Leave blank to use <name>-<namespace>.<cluster apps domain>.
+            Set this only when the route must use a specific hostname the
+            cluster router will admit.
+          type: text
+          variable: gitea_route_host
+          required: false
+          default: ''
+        - question_name: Gitea image tag
+          question_description: >-
+            Tag for quay.io/rhpds/gitea. latest matches the operator default.
+          type: text
+          variable: gitea_image_tag
+          required: true
+          default: latest
 
   - name: "Infrastructure | AWS - Setup CI/CD Demo Host"
     description: >-

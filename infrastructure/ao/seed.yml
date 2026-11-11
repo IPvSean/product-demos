@@ -169,21 +169,38 @@
           }}
       no_log: true
 
-    - name: Record Gitea warning when credential or host is missing
+    - name: Record Gitea warning when the Controller credential is missing
       when:
         - (ao_gitea_demos | default([]) | length) > 0
-        - >-
-          not (ao_gitea_present | default(false) | bool)
-          or not (ao_gitea_host_present | default(false) | bool)
+        - not (ao_gitea_present | default(false) | bool)
       ansible.builtin.set_fact:
         ao_seed_warnings: >-
           {{
             ao_seed_warnings + [
               'Demo(s) '
               ~ (ao_gitea_demos | map(attribute='slug') | list | join(', '))
-              ~ ' need aws_gitea + Gitea Controller credential. Run '
-              ~ 'Infrastructure | AWS - Deploy Shared Services (or Provision Gitea), '
-              ~ 'sync AWS Inventory, then re-run Install.'
+              ~ ' need the Gitea Controller credential. Run '
+              ~ 'Infrastructure | OpenShift - Provision Gitea or '
+              ~ 'Infrastructure | AWS - Provision Gitea (or Deploy Shared Services), '
+              ~ 'then re-run Install.'
+            ]
+          }}
+
+    - name: Record Gitea warning when deploy jobs have no aws_gitea host
+      when:
+        - (ao_gitea_demos | default([]) | length) > 0
+        - ao_gitea_present | default(false) | bool
+        - not (ao_gitea_host_present | default(false) | bool)
+      ansible.builtin.set_fact:
+        ao_seed_warnings: >-
+          {{
+            ao_seed_warnings + [
+              'Demo(s) '
+              ~ (ao_gitea_demos | map(attribute='slug') | list | join(', '))
+              ~ ' can call the Gitea API, but deploy, drain, rollback, and '
+              ~ 'reset-demo job templates still limit to aws_gitea, which is '
+              ~ 'not in inventory. Run Infrastructure | AWS - Provision Gitea '
+              ~ 'and sync AWS Inventory when those machine tasks are required.'
             ]
           }}
 
@@ -217,7 +234,15 @@
             + (
               (
                 [
-                  'Gitea URL: http://' ~ ao_gitea_host ~ ':' ~ ao_gitea_port,
+                  'Gitea URL: '
+                  ~ (
+                    ao_gitea_scheme
+                    | default(
+                        'https' if ((ao_gitea_port | default('3000') | string) == '443') else 'http',
+                        true
+                      )
+                  )
+                  ~ '://' ~ ao_gitea_host ~ ':' ~ ao_gitea_port,
                   'Gitea Username: apdadmin',
                   'Gitea Password: Ansible123!',
                   'Gitea Controller credential: attached to CI/CD Demo JTs when present',

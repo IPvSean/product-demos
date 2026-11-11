@@ -1,0 +1,246 @@
+---
+# Privileged Podman sidecar so act_runner can start the same
+# node:20-bookworm job containers the AWS host starts via the host socket.
+- name: Fetch the Actions runner registration token
+  ansible.builtin.include_tasks: fetch_runner_token.yml
+
+- name: Create the Actions runner service account
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ServiceAccount
+      metadata:
+        name: gitea-runner
+        namespace: "{{ _gitea_namespace }}"
+        labels:
+          app.kubernetes.io/part-of: apd-gitea
+
+- name: Grant the privileged SCC to the Actions runner
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: rbac.authorization.k8s.io/v1
+      kind: RoleBinding
+      metadata:
+        name: gitea-runner-privileged
+        namespace: "{{ _gitea_namespace }}"
+      roleRef:
+        apiGroup: rbac.authorization.k8s.io
+        kind: ClusterRole
+        name: system:openshift:scc:privileged
+      subjects:
+        - kind: ServiceAccount
+          name: gitea-runner
+          namespace: "{{ _gitea_namespace }}"
+
+- name: Write the act_runner config
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: ConfigMap
+      metadata:
+        name: gitea-runner-config
+        namespace: "{{ _gitea_namespace }}"
+        labels:
+          app.kubernetes.io/part-of: apd-gitea
+      data:
+        config.yaml: |
+          log:
+            level: info
+          runner:
+            file: /data/.runner
+            capacity: 1
+            timeout: 3h
+            insecure: true
+          container:
+            docker_host: "unix:///run/podman/podman.sock"
+            privileged: true
+            valid_volumes:
+              - /data/**
+              - /run/podman/**
+
+- name: Store the Actions runner registration token
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: gitea-runner-token
+        namespace: "{{ _gitea_namespace }}"
+        labels:
+          app.kubernetes.io/part-of: apd-gitea
+      stringData:
+        token: "{{ gitea_runner_registration_token }}"
+  no_log: true
+
+- name: Stamp this runner rollout
+  ansible.builtin.set_fact:
+    gitea_runner_rollout: "{{ now(utc=true).strftime('%Y%m%dT%H%M%SZ') }}"
+
+- name: Deploy the Gitea Actions runner
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: gitea-runner
+        namespace: "{{ _gitea_namespace }}"
+        labels:
+          app: gitea-runner
+          app.kubernetes.io/part-of: apd-gitea
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: gitea-runner
+        strategy:
+          type: Recreate
+        template:
+          metadata:
+            labels:
+              app: gitea-runner
+              app.kubernetes.io/part-of: apd-gitea
+            annotations:
+              apd.redhat.com/rollout: "{{ gitea_runner_rollout }}"
+          spec:
+            serviceAccountName: gitea-runner
+            containers:
+              - name: podman
+                image: quay.io/podman/stable
+                imagePullPolicy: Always
+                command:
+                  - podman
+                  - --storage-driver=vfs
+                  - system
+                  - service
+                  - --time=0
+                  - unix:///run/podman/podman.sock
+                securityContext:
+                  privileged: true
+                volumeMounts:
+                  - name: podman-run
+                    mountPath: /run/podman
+                  - name: podman-storage
+                    mountPath: /var/lib/containers
+              - name: runner
+                image: docker.io/gitea/act_runner:latest
+                imagePullPolicy: Always
+                env:
+                  - name: GITEA_INSTANCE_URL
+                    value: "https://{{ gitea_openshift_route_host }}"
+                  - name: GITEA_RUNNER_REGISTRATION_TOKEN
+                    valueFrom:
+                      secretKeyRef:
+                        name: gitea-runner-token
+                        key: token
+                  - name: GITEA_RUNNER_NAME
+                    value: apd-demo-runner
+                  - name: GITEA_RUNNER_LABELS
+                    value: "ubuntu-latest:docker://docker.io/library/node:20-bookworm"
+                  - name: CONFIG_FILE
+                    value: /etc/act_runner/config.yaml
+                  - name: DOCKER_HOST
+                    value: unix:///run/podman/podman.sock
+                securityContext:
+                  privileged: true
+                volumeMounts:
+                  - name: runner-config
+                    mountPath: /etc/act_runner/config.yaml
+                    subPath: config.yaml
+                  - name: runner-data
+                    mountPath: /data
+                  - name: podman-run
+                    mountPath: /run/podman
+            volumes:
+              - name: runner-config
+                configMap:
+                  name: gitea-runner-config
+              - name: runner-data
+                emptyDir: {}
+              - name: podman-run
+                emptyDir: {}
+              - name: podman-storage
+                emptyDir: {}
+
+- name: Wait for the Actions runner pod
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ _gitea_namespace }}"
+    label_selectors:
+      - app=gitea-runner
+  register: gitea_runner_pod
+  until:
+    - gitea_runner_pod.resources | default([]) | length > 0
+    - gitea_runner_pod.resources[0].status.phase | default('') == 'Running'
+  retries: 30
+  delay: 10
+  failed_when: false
+
+- name: Explain an Actions runner pod that did not start
+  when: >-
+    (gitea_runner_pod.resources | default([]) | length) == 0
+    or (gitea_runner_pod.resources[0].status.phase | default('')) != 'Running'
+  ansible.builtin.fail:
+    msg: >-
+      The gitea-runner pod did not reach Running. Nested Podman needs the
+      privileged SCC on ServiceAccount gitea-runner in {{ _gitea_namespace }}.
+      Re-run with gitea_deploy_runner=false to publish the forge without an
+      Actions runner. Status:
+      {{
+        gitea_runner_pod.resources[0].status
+        if ((gitea_runner_pod.resources | default([]) | length) > 0)
+        else (gitea_runner_pod.msg | default('no pod'))
+      }}
+
+- name: Wait until the runner container is ready
+  kubernetes.core.k8s_info:
+    api_version: v1
+    kind: Pod
+    namespace: "{{ _gitea_namespace }}"
+    label_selectors:
+      - app=gitea-runner
+  register: gitea_runner_pod
+  until:
+    - gitea_runner_pod.resources | default([]) | length > 0
+    - >-
+      (gitea_runner_pod.resources | default([]) | length) > 0
+      and (
+        gitea_runner_pod.resources[0].status.containerStatuses | default([])
+        | selectattr('name', 'equalto', 'runner')
+        | map(attribute='ready')
+        | list
+        | length
+      ) > 0
+      and (
+        gitea_runner_pod.resources[0].status.containerStatuses | default([])
+        | selectattr('name', 'equalto', 'runner')
+        | map(attribute='ready')
+        | first
+      )
+  retries: 30
+  delay: 10
+
+- name: Read act_runner logs
+  kubernetes.core.k8s_log:
+    name: "{{ gitea_runner_pod.resources[0].metadata.name }}"
+    namespace: "{{ _gitea_namespace }}"
+    container: runner
+  register: gitea_runner_k8s_logs
+  until: >-
+    (
+      'declare successfully' in (gitea_runner_k8s_logs.log | default(''))
+      or 'Runner registered successfully' in (gitea_runner_k8s_logs.log | default(''))
+    )
+    and 'docker_host config was invalid' not in (gitea_runner_k8s_logs.log | default(''))
+    and 'Docker Engine socket not found' not in (gitea_runner_k8s_logs.log | default(''))
+  retries: 18
+  delay: 10
+
+- name: Record that the Actions runner registered
+  ansible.builtin.set_fact:
+    gitea_runner_ready: true

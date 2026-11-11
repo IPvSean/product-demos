@@ -55,6 +55,7 @@ Detect unauthorized changes to `/etc/ssh/sshd_config` via Linux audit, route eve
 |--------------|-------------|
 | [**Infrastructure ǀ AWS - Provision Mattermost**](docs/mattermost.md) | EC2 `aws_mattermost` + Podman Mattermost with bot token for AO and other chat demos |
 | [**Infrastructure ǀ AWS - Provision Gitea**](docs/gitea.md) | EC2 `aws_gitea` + Podman Gitea (SQLite); job output prints `apdadmin` / `Ansible123!` |
+| [**Infrastructure ǀ OpenShift - Provision Gitea**](docs/gitea-openshift.md) | Same Gitea forge on lab OpenShift via the RHDP operator; no AWS |
 | [**Infrastructure ǀ AWS - Shared Services Portal**](docs/shared-services.md) | S3 password-gated page with this lab’s Mattermost / Gitea / OpenFlake logins |
 
 ### OPA (Open Policy Agent)

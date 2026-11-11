@@ -1,0 +1,141 @@
+---
+# One inventory-service runtime (dev or prod) as a Deployment plus an edge Route.
+- name: Deploy {{ gitea_demo_app.name }}
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: apps/v1
+      kind: Deployment
+      metadata:
+        name: "{{ gitea_demo_app.name }}"
+        namespace: "{{ _gitea_namespace }}"
+        labels:
+          app: "{{ gitea_demo_app.name }}"
+          app.kubernetes.io/part-of: apd-gitea
+      spec:
+        replicas: 1
+        selector:
+          matchLabels:
+            app: "{{ gitea_demo_app.name }}"
+        template:
+          metadata:
+            labels:
+              app: "{{ gitea_demo_app.name }}"
+              app.kubernetes.io/part-of: apd-gitea
+          spec:
+            containers:
+              - name: app
+                image: registry.access.redhat.com/ubi9/python-311:latest
+                imagePullPolicy: IfNotPresent
+                command:
+                  - /usr/bin/python3
+                  - /opt/app/app.py
+                env:
+                  - name: APP_NAME
+                    value: inventory-service
+                  - name: APP_ENV
+                    value: "{{ gitea_demo_app.env }}"
+                  - name: APP_PORT
+                    value: "8080"
+                ports:
+                  - name: http
+                    containerPort: 8080
+                    protocol: TCP
+                readinessProbe:
+                  httpGet:
+                    path: /health
+                    port: http
+                  initialDelaySeconds: 3
+                  periodSeconds: 10
+                livenessProbe:
+                  httpGet:
+                    path: /health
+                    port: http
+                  initialDelaySeconds: 10
+                  periodSeconds: 20
+                resources:
+                  requests:
+                    cpu: 50m
+                    memory: 128Mi
+                  limits:
+                    cpu: 200m
+                    memory: 256Mi
+                volumeMounts:
+                  - name: app
+                    mountPath: /opt/app
+                    readOnly: true
+            volumes:
+              - name: app
+                configMap:
+                  name: inventory-service-runtime
+
+- name: Expose {{ gitea_demo_app.name }}
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Service
+      metadata:
+        name: "{{ gitea_demo_app.name }}"
+        namespace: "{{ _gitea_namespace }}"
+        labels:
+          app: "{{ gitea_demo_app.name }}"
+          app.kubernetes.io/part-of: apd-gitea
+      spec:
+        selector:
+          app: "{{ gitea_demo_app.name }}"
+        ports:
+          - name: http
+            port: 8080
+            targetPort: http
+
+- name: Create route {{ gitea_demo_app.env }}
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: route.openshift.io/v1
+      kind: Route
+      metadata:
+        name: "{{ gitea_demo_app.name }}"
+        namespace: "{{ _gitea_namespace }}"
+        labels:
+          app: "{{ gitea_demo_app.name }}"
+          app.kubernetes.io/part-of: apd-gitea
+      spec:
+        to:
+          kind: Service
+          name: "{{ gitea_demo_app.name }}"
+        port:
+          targetPort: http
+        tls:
+          termination: edge
+          insecureEdgeTerminationPolicy: Redirect
+
+- name: Wait for route hostname {{ gitea_demo_app.env }}
+  kubernetes.core.k8s_info:
+    api_version: route.openshift.io/v1
+    kind: Route
+    name: "{{ gitea_demo_app.name }}"
+    namespace: "{{ _gitea_namespace }}"
+  register: gitea_demo_route
+  until:
+    - gitea_demo_route.resources | default([]) | length > 0
+    - gitea_demo_route.resources[0].status.ingress | default([]) | length > 0
+  retries: 30
+  delay: 5
+
+- name: Record app URL {{ gitea_demo_app.env }}
+  ansible.builtin.set_fact:
+    gitea_demo_app_url: "https://{{ gitea_demo_route.resources[0].status.ingress[0].host }}/"
+    "{{ 'gitea_' ~ gitea_demo_app.env ~ '_app_url' }}": "https://{{ gitea_demo_route.resources[0].status.ingress[0].host }}/"
+
+- name: Wait for app health {{ gitea_demo_app.env }}
+  ansible.builtin.uri:
+    url: "{{ gitea_demo_app_url }}health"
+    method: GET
+    validate_certs: false
+    status_code: [200]
+  register: gitea_demo_health
+  until: gitea_demo_health.status | default(0) == 200
+  retries: 20
+  delay: 5

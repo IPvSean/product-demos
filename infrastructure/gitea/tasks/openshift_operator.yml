@@ -1,0 +1,134 @@
+---
+# OLM install of rhpds/gitea-operator, matching
+# https://github.com/rhpds/gitea-operator/tree/main/OLMDeploy
+# The operator namespace is fixed by that subscription. The Gitea instance
+# namespace is chosen separately.
+- name: Create the Gitea operator namespace
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: v1
+      kind: Namespace
+      metadata:
+        name: "{{ gitea_operator_namespace }}"
+
+- name: Create the Gitea operator group
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: operators.coreos.com/v1
+      kind: OperatorGroup
+      metadata:
+        name: gitea-operator
+        namespace: "{{ gitea_operator_namespace }}"
+      spec:
+        targetNamespaces: []
+
+- name: Create the RHDP Gitea catalog source
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: operators.coreos.com/v1alpha1
+      kind: CatalogSource
+      metadata:
+        name: redhat-rhpds-gitea
+        namespace: "{{ gitea_operator_namespace }}"
+      spec:
+        sourceType: grpc
+        image: quay.io/rhpds/gitea-catalog:latest
+        displayName: Red Hat Demo Platform (Gitea)
+        publisher: Red Hat Demo Platform
+
+- name: Wait for the Gitea catalog source
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: CatalogSource
+    name: redhat-rhpds-gitea
+    namespace: "{{ gitea_operator_namespace }}"
+  register: gitea_catalog
+  until:
+    - gitea_catalog.resources | default([]) | length > 0
+    - >-
+      gitea_catalog.resources[0].status.connectionState.lastObservedState
+      | default('') == 'READY'
+  retries: 40
+  delay: 15
+  failed_when: false
+
+- name: Require the Gitea catalog source
+  ansible.builtin.assert:
+    that:
+      - gitea_catalog.resources | default([]) | length > 0
+      - >-
+        gitea_catalog.resources[0].status.connectionState.lastObservedState
+        | default('') == 'READY'
+    fail_msg: >-
+      CatalogSource redhat-rhpds-gitea in {{ gitea_operator_namespace }}
+      did not become READY. Last state:
+      {{
+        gitea_catalog.resources[0].status.connectionState
+        | default(gitea_catalog.msg | default('no status'))
+      }}.
+      Confirm the cluster can pull quay.io/rhpds/gitea-catalog:latest.
+
+- name: Subscribe to the Gitea operator
+  kubernetes.core.k8s:
+    state: present
+    definition:
+      apiVersion: operators.coreos.com/v1alpha1
+      kind: Subscription
+      metadata:
+        name: gitea-operator
+        namespace: "{{ gitea_operator_namespace }}"
+      spec:
+        channel: stable
+        installPlanApproval: Automatic
+        name: gitea-operator
+        source: redhat-rhpds-gitea
+        sourceNamespace: "{{ gitea_operator_namespace }}"
+
+- name: Wait for the Gitea operator subscription to install a CSV
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: Subscription
+    name: gitea-operator
+    namespace: "{{ gitea_operator_namespace }}"
+  register: gitea_operator_sub
+  until:
+    - gitea_operator_sub.resources | default([]) | length > 0
+    - >-
+      (gitea_operator_sub.resources[0].status.installedCSV | default('') | length) > 0
+  retries: 40
+  delay: 15
+
+- name: Wait for the Gitea operator install to finish
+  kubernetes.core.k8s_info:
+    api_version: operators.coreos.com/v1alpha1
+    kind: ClusterServiceVersion
+    name: "{{ gitea_operator_sub.resources[0].status.installedCSV }}"
+    namespace: "{{ gitea_operator_namespace }}"
+  register: gitea_operator_csv
+  until:
+    - gitea_operator_csv.resources | default([]) | length > 0
+    - gitea_operator_csv.resources[0].status.phase | default('') in ['Succeeded', 'Failed']
+  retries: 40
+  delay: 15
+
+- name: Require the Gitea operator CSV to succeed
+  ansible.builtin.assert:
+    that:
+      - gitea_operator_csv.resources[0].status.phase == 'Succeeded'
+    fail_msg: >-
+      Gitea operator CSV {{ gitea_operator_sub.resources[0].status.installedCSV }}
+      phase is {{ gitea_operator_csv.resources[0].status.phase }}.
+      {{ gitea_operator_csv.resources[0].status.message | default('') }}
+
+- name: Wait for the Gitea custom resource definition
+  kubernetes.core.k8s_info:
+    api_version: apiextensions.k8s.io/v1
+    kind: CustomResourceDefinition
+    name: giteas.pfe.rhpds.com
+  register: gitea_crd
+  until: gitea_crd.resources | default([]) | length > 0
+  retries: 20
+  delay: 5

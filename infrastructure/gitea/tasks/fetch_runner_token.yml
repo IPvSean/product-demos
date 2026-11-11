@@ -1,0 +1,27 @@
+---
+# Instance registration tokens live in Gitea's DB — fetch the real one.
+# Homegrown tokens never match, and the runner stays at 0.
+- name: Fetch Actions runner registration token from Gitea Admin API
+  ansible.builtin.uri:
+    url: "{{ gitea_api_root }}/api/v1/admin/runners/registration-token"
+    method: GET
+    user: "{{ gitea_admin_username }}"
+    password: "{{ gitea_admin_password }}"
+    force_basic_auth: true
+    validate_certs: "{{ gitea_api_validate_certs | default(true) | bool }}"
+    status_code: [200]
+  register: gitea_runner_token_api
+  no_log: true
+
+- name: Store Actions runner registration token fact
+  ansible.builtin.set_fact:
+    gitea_runner_registration_token: "{{ gitea_runner_token_api.json.token }}"
+  no_log: true
+
+- name: Require Actions runner registration token
+  ansible.builtin.assert:
+    that:
+      - (gitea_runner_registration_token | default('') | length) >= 32
+    fail_msg: >-
+      Could not read /api/v1/admin/runners/registration-token from Gitea.
+      Confirm Actions is enabled and {{ gitea_admin_username }} is a site admin.

@@ -18,7 +18,15 @@
   vars:
     _ao_cicd_webhook_url: "https://{{ ao_api_host }}/api/v1/webhooks/lightwell-ci-cd"
     _ao_cicd_token_url: "{{ ao_cicd_token_url | default('https://' ~ ao_api_host ~ '/api/v1/auth/token') }}"
-    _gitea_api_base: "http://{{ ao_gitea_host }}:{{ ao_gitea_port | default('3000') }}/api/v1"
+    _gitea_scheme: >-
+      {{
+        ao_gitea_scheme
+        | default(
+            'https' if ((ao_gitea_port | default('3000') | string) == '443') else 'http',
+            true
+          )
+      }}
+    _gitea_api_base: "{{ _gitea_scheme }}://{{ ao_gitea_host }}:{{ ao_gitea_port | default('3000') }}/api/v1"
     _gitea_owner: "{{ ao_gitea_owner | default(gitea_owner | default('apdadmin')) }}"
     _gitea_repo: "{{ ao_gitea_repo | default(gitea_repo | default('inventory-service')) }}"
     # Prefer JT-injected token from attached Gitea credential; never log it.
