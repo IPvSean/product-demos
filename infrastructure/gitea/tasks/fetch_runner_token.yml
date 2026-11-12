@@ -1,7 +1,11 @@
 ---
-# Instance registration tokens live in Gitea's DB — fetch the real one.
-# Homegrown tokens never match, and the runner stays at 0.
-- name: Fetch Actions runner registration token from Gitea Admin API
+# Instance registration tokens live in Gitea's database.
+# Gitea 1.22 (the AWS image) serves the token at
+# GET /api/v1/admin/runners/registration-token.
+# Gitea 1.23 and later, including 28.x on quay.io/rhpds/gitea, removed that
+# route. The same global token is
+# POST /api/v1/admin/actions/runners/registration-token.
+- name: Fetch Actions runner registration token from Gitea 1.22
   ansible.builtin.uri:
     url: "{{ gitea_api_root }}/api/v1/admin/runners/registration-token"
     method: GET
@@ -9,13 +13,34 @@
     password: "{{ gitea_admin_password }}"
     force_basic_auth: true
     validate_certs: "{{ gitea_api_validate_certs | default(true) | bool }}"
-    status_code: [200]
-  register: gitea_runner_token_api
+    status_code: [200, 404]
+  register: gitea_runner_token_legacy
   no_log: true
 
-- name: Store Actions runner registration token fact
+- name: Fetch Actions runner registration token from the Actions admin API
+  when: (gitea_runner_token_legacy.status | default(0) | int) != 200
+  ansible.builtin.uri:
+    url: "{{ gitea_api_root }}/api/v1/admin/actions/runners/registration-token"
+    method: POST
+    user: "{{ gitea_admin_username }}"
+    password: "{{ gitea_admin_password }}"
+    force_basic_auth: true
+    validate_certs: "{{ gitea_api_validate_certs | default(true) | bool }}"
+    status_code: [200]
+  register: gitea_runner_token_actions
+  failed_when: false
+  no_log: true
+
+- name: Store the Gitea 1.22 runner registration token
+  when: (gitea_runner_token_legacy.status | default(0) | int) == 200
   ansible.builtin.set_fact:
-    gitea_runner_registration_token: "{{ gitea_runner_token_api.json.token }}"
+    gitea_runner_registration_token: "{{ gitea_runner_token_legacy.json.token }}"
+  no_log: true
+
+- name: Store the Actions admin runner registration token
+  when: (gitea_runner_token_legacy.status | default(0) | int) != 200
+  ansible.builtin.set_fact:
+    gitea_runner_registration_token: "{{ (gitea_runner_token_actions.json | default({})).token | default('') }}"
   no_log: true
 
 - name: Require Actions runner registration token
@@ -23,5 +48,9 @@
     that:
       - (gitea_runner_registration_token | default('') | length) >= 32
     fail_msg: >-
-      Could not read /api/v1/admin/runners/registration-token from Gitea.
+      Could not read a runner registration token.
+      Gitea 1.22 uses GET /api/v1/admin/runners/registration-token
+      (HTTP {{ gitea_runner_token_legacy.status | default('n/a') }}).
+      Later Gitea uses POST /api/v1/admin/actions/runners/registration-token
+      (HTTP {{ (gitea_runner_token_actions | default({})).status | default('skipped') }}).
       Confirm Actions is enabled and {{ gitea_admin_username }} is a site admin.
