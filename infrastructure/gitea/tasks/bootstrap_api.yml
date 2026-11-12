@@ -87,6 +87,67 @@
   register: gitea_repo_create
   no_log: true
 
+# A previous app.ini can leave the Postgres row behind after the git directory
+# was written off the persistent volume. The contents API then returns 500.
+- name: Check that inventory-service git data is readable
+  ansible.builtin.uri:
+    url: >-
+      {{ gitea_api_root }}/api/v1/repos/{{ gitea_repo_owner }}/{{ gitea_repo_name }}/contents?ref=main
+    method: GET
+    headers:
+      Authorization: "token {{ gitea_api_token }}"
+    validate_certs: "{{ gitea_api_validate_certs | bool }}"
+    status_code: [200, 404, 500]
+  register: gitea_repo_git_probe
+  no_log: true
+
+- name: Note that inventory-service git data is missing
+  when:
+    - (gitea_repo_git_probe.status | default(0) | int) == 500
+    - "'no such file' in (gitea_repo_git_probe.json.message | default('') | lower)"
+  ansible.builtin.debug:
+    msg: >-
+      inventory-service is in the Gitea database but its git directory is missing.
+      Deleting and recreating the repository so the baseline seed can run.
+
+- name: Delete inventory-service when its git directory is missing
+  when:
+    - (gitea_repo_git_probe.status | default(0) | int) == 500
+    - "'no such file' in (gitea_repo_git_probe.json.message | default('') | lower)"
+  ansible.builtin.uri:
+    url: "{{ gitea_api_root }}/api/v1/repos/{{ gitea_repo_owner }}/{{ gitea_repo_name }}"
+    method: DELETE
+    headers:
+      Authorization: "token {{ gitea_api_token }}"
+    validate_certs: "{{ gitea_api_validate_certs | bool }}"
+    status_code: [202, 204, 404]
+  no_log: true
+
+- name: Recreate inventory-service after missing git data
+  when:
+    - (gitea_repo_git_probe.status | default(0) | int) == 500
+    - "'no such file' in (gitea_repo_git_probe.json.message | default('') | lower)"
+  ansible.builtin.uri:
+    url: "{{ gitea_api_root }}/api/v1/user/repos"
+    method: POST
+    headers:
+      Authorization: "token {{ gitea_api_token }}"
+      Content-Type: application/json
+    body_format: json
+    body:
+      name: "{{ gitea_repo_name }}"
+      description: Lightwell CI/CD demo — inventory service
+      private: false
+      auto_init: true
+      default_branch: main
+    validate_certs: "{{ gitea_api_validate_certs | bool }}"
+    status_code: [201, 409]
+  register: gitea_repo_recreate
+  until: (gitea_repo_recreate.status | default(0) | int) == 201
+  retries: 10
+  delay: 3
+  no_log: true
+
 # Baseline matches cicd_reset_demo.yml: vulnerable aiohttp 3.9.0, empty
 # PATCHED_CVE/CHANGE_REQUEST, version 2.3.0. Simulate Lightwell PR must keep
 # 3.9.0 and only add .rhlw-00001 (JT extra_vars: aiohttp==3.9.0.rhlw-00001).

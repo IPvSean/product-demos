@@ -76,6 +76,21 @@
   ansible.builtin.debug:
     msg: "Gitea route: https://{{ gitea_openshift_route_host }}/"
 
+# Catalog quay.io/rhpds/gitea-catalog:latest currently installs operator 2.1.0,
+# which mounts the PVC at /gitea-repositories. Operator 2.2 and later mount
+# the same claim at /gitea-data and keep repositories under repositories/.
+- name: Match the Gitea repository path to the operator volume
+  ansible.builtin.set_fact:
+    gitea_repository_root: "{{ _gitea_repository_root }}"
+  vars:
+    _gitea_operator_version: "{{ gitea_operator_csv.resources[0].spec.version | default('2.1.0') }}"
+    _gitea_repository_root: >-
+      {{
+        '/gitea-repositories'
+        if (_gitea_operator_version is version('2.2.0', '<'))
+        else '/gitea-data/repositories'
+      }}
+
 - name: Render Gitea app.ini with Actions enabled
   ansible.builtin.set_fact:
     gitea_app_ini: |
@@ -109,7 +124,7 @@
       SSL_MODE = disable
 
       [repository]
-      ROOT = /gitea-data/repositories
+      ROOT = {{ gitea_repository_root }}
 
       [packages]
       PATH = /gitea-data/packages
