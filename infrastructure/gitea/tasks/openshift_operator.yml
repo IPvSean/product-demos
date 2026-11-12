@@ -123,11 +123,12 @@
       phase is {{ gitea_operator_csv.resources[0].status.phase }}.
       {{ gitea_operator_csv.resources[0].status.message | default('') }}
 
+# The operator registers plural "gitea", so the CRD is gitea.pfe.rhpds.com.
 - name: Wait for the Gitea custom resource definition
   kubernetes.core.k8s_info:
     api_version: apiextensions.k8s.io/v1
     kind: CustomResourceDefinition
-    name: giteas.pfe.rhpds.com
+    name: gitea.pfe.rhpds.com
   register: gitea_crd
   until: gitea_crd.resources | default([]) | length > 0
   retries: 20
