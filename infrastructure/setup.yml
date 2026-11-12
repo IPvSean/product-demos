@@ -136,7 +136,7 @@ controller_credential_types:
         - id: gitea_port
           type: string
           label: Gitea HTTP port
-          help_text: 3000 on the AWS host. 443 on an OpenShift route (HTTPS).
+          help_text: Default 3000.
         - id: gitea_token
           type: string
           label: API token
